@@ -225,6 +225,40 @@ be snapped off for 3.3 V flying-lead use, which is a different supply
 arrangement from the one above. Table 1 describes the intact board; keep it
 intact.
 
+### Phase 1 sensing checkpoint — PASSED, 2026-08-02
+
+`tof_range` streaming 8×8 at 10 Hz, hand and object motion tracked correctly.
+Representative frames from the first real run:
+
+| Frame | Reading | Interpretation |
+|-------|---------|----------------|
+| 45 | `46..79 mm`, 57/64 valid, uniform | flat surface against the sensor |
+| 190 | `481..1147 mm`, 54/64, smooth gradient | angled surface across the FoV |
+| 210 | `293..1716 mm`, 60/64 | wall at ~1.5 m, object at 300 mm in one corner |
+| 205 | `0/64 valid` | open space — nothing in range. Correct, not a fault |
+
+**Two findings that matter for later phases:**
+
+**1. Silicon temperature climbed 34 °C → 44 °C over a few minutes of ranging.**
+The sensor reports this per frame (`silicon_temp_degc`) and it is a real,
+self-generated hot spot roughly 20 °C above ambient. This is direct evidence
+for the rig-design decision: the AMG8833 is a thermopile measuring radiated
+heat, and mounting it hard against a part that sits at 44 °C would put a
+permanent bright corner in its 8×8 grid — present in every class equally, so
+it would quietly consume dynamic range rather than showing up as an obvious
+fault. Leave a physical gap, and prefer having the thermal sensor upstream of
+the ToF in any airflow.
+
+**2. Valid-zone count swings enormously — 0/64 to 64/64 — with no fault.**
+A zone reports no valid target when nothing is in range, which for
+room-scale mounting will be common (ceilings, doorways, open space beyond the
+sensor's reach). Phase 3 has to decide explicitly what an invalid zone means
+as model input. It is *not* missing data to be imputed away: "nothing within
+range in this direction" is a real, informative observation about the room.
+Encoding it as 0 mm would be actively misleading — that reads as "something
+touching the sensor", the exact opposite. Worth deciding before training, not
+after the confusion matrix disappoints.
+
 ### FIRST LIGHT — 0x29 answered, 2026-08-02
 
 ```
