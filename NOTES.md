@@ -225,23 +225,44 @@ be snapped off for 3.3 V flying-lead use, which is a different supply
 arrangement from the one above. Table 1 describes the intact board; keep it
 intact.
 
-### The wiring as built (2026-08-01, verified electrically)
+### The wiring (2026-08-01 — revised after the PWR_EN discovery)
 
-Five wires, **each placed by reading the silkscreen label at both ends** —
-see the debugging record below for why that rule is written in bold:
+**The SATEL is two boards in one, and they take different supplies.** The
+carrier section has a labeled hole row and an LDO (`U1`); the perforated
+mini-PCB carries the sensor and its own castellation labels. The same name
+means different things on each:
 
-| Board label | SATEL label | Purpose |
-|-------------|-------------|---------|
-| `5V` | `AVDD` | analog supply — confirmed present and measured 5.0 V |
-| `3V3` | `IOVDD` | I/O supply, 3.3 V |
+- **Carrier `AVDD` hole = LDO input, takes 5 V.** The LDO drops it to the
+  3.3 V the chip wants. **`PWR_EN` enables the LDO, defaults OFF, and must be
+  tied high** — it is a board-control pin, not a sensor pin. AN5717 Table 1
+  wires it to A5 and ST's example code drives it high.
+- **Mini-PCB castellation `AVDD` = the raw chip rail, 3.3 V maximum.**
+  AN5717 calls the snapped mini-PCB "a 3.3 V supply application". 5 V here
+  is out of spec for the bare sensor.
+
+**Correct hookup for the intact board — six wires at the carrier holes,
+each placed by reading the silkscreen label at both ends:**
+
+| Board label | SATEL carrier label | Purpose |
+|-------------|--------------------|---------|
+| `5V` | `AVDD` | LDO input |
+| `3V3` | `IOVDD` | I/O rail |
+| `3V3` | `PWR_EN` | **LDO enable — without this the sensor is dark** |
 | `GND` | `GND` | common ground |
 | `D15 SCL` | `SCL` | I2C1 clock (PB8) |
 | `D14` | `SDA` | I2C1 data (PB9) |
 
-`INT`, `LPn`, `I2C_RST` are left unconnected: the breakout's own resistors
-hold `LPn` high (comms enabled) and `I2C_RST` low (not reset). `INT` becomes
+`INT`, `LPn`, `I2C_RST` stay unconnected: the breakout's resistors hold
+`LPn` high (comms enabled) and `I2C_RST` low (not reset). `INT` becomes
 relevant when frame-ready moves from polling to interrupts later in Phase 1 —
-any free header GPIO will do at that point; ST's reference uses A1/A2/A3.
+any free header GPIO will do; ST's reference uses A1/A2/A3.
+
+An earlier revision of this section specified five wires by castellation
+label, omitting `PWR_EN` (the castellations don't have one) and sending 5 V
+to what may have been the raw rail. Symptom of the missing `PWR_EN`:
+perfectly clean bus, correct voltages at the input holes, and total silence
+at 0x29 — a regulator that is off looks exactly like a sensor that is
+absent.
 
 **Board trap, the expensive kind:** the B-U585I-IOT02A's ARDUINO digital
 header is not populated identically to a NUCLEO-64's — the first position is
