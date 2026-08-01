@@ -10,6 +10,7 @@ CoworkOS is a privacy-preserving room occupancy detection system. It uses a VL53
 - B-U585I-IOT02A Discovery Kit (STM32U585, Cortex-M33)
 - VL53L5CX-SATEL (8×8 zone Time-of-Flight sensor, I2C) — distance + reflectance per zone
 - SparkFun Grid-EYE AMG8833 (8×8 thermopile IR array, I2C) — radiated heat per pixel
+- HiLetgo ILI9341 TFT (240×320, SPI) — on-device readout added in Phase 4: class, confidence, small live heatmap. **Display only — do not wire up the touch panel.**
 
 **Software stack:**
 - Rust firmware using Embassy async framework
@@ -121,7 +122,7 @@ The project follows `occupancy-sensor-project-plan.md` at the repo root:
 1. **Hardware bring-up** — I2C + VL53L5CX ULD via FFI, raw 8×8 frame over UART
 2. **Data collection** — labeled CSV frames per class (empty, sitting, standing, walking)
 3. **Model training** — STM32Cube AI Studio BYOD flow, validate on held-out data
-4. **Firmware integration** — live inference every 1–2s, output over telemetry
+4. **Firmware integration** — live inference every 1–2s, output over telemetry, plus the ILI9341 readout
 5. **Gateway integration** — MQTT topic → BACnet object → Grafana panel
 6. **Real-world validation** — multi-day run, edge cases
 7. **Write-up** — blog post

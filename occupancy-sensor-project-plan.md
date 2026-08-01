@@ -20,9 +20,12 @@ automation contact.
 - [ ] VL53L5CX-SATEL (8×8 zone ToF sensor)
 - [ ] Jumper wires / breadboard (for I2C + interrupt line wiring)
 - [ ] USB-C cable for programming/power
-- [ ] (Optional, later) B-CAMS-OMV camera bundle — only needed if you
-      decide to do a vision-based comparison later; not required for
-      this plan
+- [ ] HiLetgo ILI9341 TFT (SPI) — on-device readout, added in Phase 4
+- [ ] A phone and a tripod — video ground truth in Phases 2 and 6
+- [ ] (Owned, deliberately deferred) B-CAMS-OMV camera bundle — needed
+      only for the vision-based comparison in the stretch list, which
+      stays outside the six-month window. It is **not** the ground-truth
+      camera; see Phase 2 step 4
 
 **Software:**
 - [ ] STM32CubeIDE or `probe-rs` + your existing Rust/Embassy toolchain
@@ -91,8 +94,18 @@ so you have something to train/threshold against.
    1–2 minutes per class, several sessions, ideally across a couple of
    different days/lighting conditions (ToF is largely light-independent,
    but do it anyway for robustness).
-4. Label each session file with its class in the filename or a column.
-5. **Checkpoint:** load the CSVs in Python, plot a few frames as
+4. Record video ground truth alongside each session — a phone on a
+   tripod with a visible clock in frame, time-synced to the frame log.
+   Hand-labeled sessions drift: you remember a run as "sitting" and you
+   are occasionally wrong, and a mislabeled session is indistinguishable
+   from a bad model three weeks later. This is a **development tool and
+   never part of the deployed system** — say that explicitly in the
+   write-up, because the whole premise is camera-free sensing and a
+   reader will notice the camera otherwise. Note that this is a phone,
+   not the B-CAMS-OMV: the job needs a camera and a clock, not a camera
+   pipeline running on the U585.
+5. Label each session file with its class in the filename or a column.
+6. **Checkpoint:** load the CSVs in Python, plot a few frames as
    heatmaps (`matplotlib.pyplot.imshow`), and visually confirm the
    classes look distinguishable by eye. If `empty` vs `one_person`
    don't look different in the heatmap, fix sensor placement before
@@ -142,7 +155,14 @@ frames — not just on saved CSVs.
 4. Output the classification result (e.g., `occupied` / `empty` / a
    people-count) over your existing telemetry channel — UART, MQTT, or
    whatever your LoRaWAN/gateway nodes already use.
-5. **Checkpoint:** stand in front of the sensor, walk away, walk back —
+5. Add the on-device readout on the ILI9341 (SPI): class and confidence
+   large enough to read across the room, plus a small live heatmap. This
+   is instrumentation for the checkpoint below rather than polish — the
+   test asks you to walk the field of view, and reading the result off a
+   tethered laptop makes that a two-person job. **Display only; leave the
+   touch panel unused.** Scoped that way it is an evening's work; allowed
+   to become a UI it will consume the phase.
+6. **Checkpoint:** stand in front of the sensor, walk away, walk back —
    confirm the live classification output tracks reality with a
    reasonable delay and without obvious flapping (if it flickers
    rapidly between classes, add simple debouncing/hysteresis in
@@ -184,7 +204,11 @@ sensors, in the same pipeline.
      that intentionally)
    - Pets, if you have any (false positives?)
    - Someone standing at the edge of the field of view
-3. Write down false positives/negatives you find — this becomes the
+3. Keep the video ground truth running for at least one full day of the
+   continuous run. When the log says `occupied` at 14:32 and you believe
+   the room was empty, the recording is the whole difference between a
+   documented limitation and a mystery you cannot explain in the post.
+4. Write down false positives/negatives you find — this becomes the
    "known limitations" section of your write-up, which is more
    credible than pretending it's perfect.
 
