@@ -8,7 +8,7 @@ use embassy_time::{Duration, Timer};
 use defmt_rtt as _;
 use panic_probe as _;
 
-mod clock;
+use coworkos_firmware::clock;
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {

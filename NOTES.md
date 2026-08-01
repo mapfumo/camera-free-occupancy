@@ -87,21 +87,167 @@ and a broken scanner.
 The on-board bus has its own pull-ups fitted, so the scanner leaves the
 internal ones off for I2C2.
 
-The ARDUINO header has none. The scanner enables the STM32's internal pull-ups
-on I2C1 so that probing a bare header gives clean NACKs rather than noise.
-**These are a bring-up convenience, not the real design.** They are tens of
-kilohms, which is weak for I2C; the breakout boards' own pull-ups are what the
-final wiring should rely on. If both end up in parallel that is fine at
-100 kHz, but revisit it before raising the bus speed.
+**The ARDUINO header lines (PB8/PB9) also carry board-side pull-ups —
+confirmed empirically 2026-08-01**, not from the schematic: with the header
+completely empty, both lines hold high against the STM32's ~40 kΩ internal
+pull-down, which only an external resistor well under that can do. (An earlier
+draft of this note claimed the header had none; the bench said otherwise.)
 
-### Still to confirm before wiring
+Consequences:
 
-- VL53L5CX-SATEL pin-out: which header pins are SDA, SCL, INT, LPn, PWREN,
-  and what each needs tying to. **Not yet read** — needs the SATEL user
-  manual from ST.
-- A free GPIO for the ToF interrupt line. Not needed for the scan; the ULD
-  can be polled for data-ready during bring-up and moved to an interrupt once
-  frames are flowing.
+- The internal pull-ups enabled in `i2c_scan` for I2C1 are redundant. Harmless
+  at 100 kHz, but they can go.
+- These plus the SATEL's own 2.2 kΩ will sit in parallel. Fine at 100 kHz;
+  recheck the combined strength before raising the bus speed.
+- `bus_check`'s "external pull-up present" verdict detects the **board's**
+  resistors, so it cannot tell whether a sensor is attached or powered. What
+  it can still do is find a shorted line, which is precisely what it did.
+
+### Debugging record: the SDA short (2026-08-01)
+
+First wiring of the SATEL: `i2c_scan` found nothing at 0x29. `bus_check`
+showed SCL high but SDA clamped to ground so hard that neither the internal
+pull-up nor the board's own pull-up could lift it. With the SATEL fully
+disconnected, SDA read clean high — **the short travels with the SATEL
+wiring**. The board was never the problem.
+
+Lesson that cost an hour: a line reading high through the header proves only
+that the *board's* pull-up is there. The first `bus_check` verdict called SCL
+"healthy — sensor powered and grounded" off exactly that misreading, and it
+was Tony disconnecting SCL and seeing no change that exposed it.
+
+Fault-isolation procedure that works, for next time: run `pin_wiggle` (live
+readback every 5 s), reconnect one wire at a time, and watch for the report
+where `PB9 lifts` flips to false — the wire that kills it is the culprit.
+
+**Continued — the short was not the wiring.** Evidence accumulated in order:
+
+1. Rewired from scratch; scan still found nothing; `bus_check` showed the
+   same SDA clamp. Same fault across two independent wirings.
+2. `bus_check` grew a 500 ms re-sample to distinguish a short from the
+   decoupling capacitance of an unpowered rail (both read "low" at 1 ms; only
+   copper stays low at 500 ms). Verdict: still low — genuinely held down.
+3. DMM at the SATEL pads, powered: AVDD 5.0 V, IOVDD 3.3 V, SCL idles 3.3 V,
+   **SDA pad 0 V**. With the SATEL's own 2.2 kΩ pull-up to a live rail, that
+   means something sinks >1.5 mA on that net continuously.
+4. Jumper wires verified; SDA-to-GND continuity on the breakout, power off:
+   **no beep**. Not copper, therefore active silicon.
+5. Symptom then spread: SCL stopped reading as well. A slave can only hold
+   SCL by clock-stretching from a wedged state — or the part is failing.
+6. `I2C_RST` pulsed high (~1 s) per its purpose as the I2C-block reset:
+   no recovery, scan still empty.
+
+**Verdict: SATEL #1 sinks its own SDA (later SCL) with good rails, no copper
+short, and does not respond to its designed reset. Suspect silicon.** It sank
+SDA from its very first transaction, so it may have arrived damaged. Labeled
+and kept for a post-mortem against a working baseline.
+
+Next: pre-flight the harness (wire-tip voltages with no sensor attached:
+AVDD 5 V, IOVDD 3.3 V, GND continuity, both signal tips ~3.3 V from the board
+pull-ups), then SATEL #2 on five wires only — AVDD, IOVDD, GND, SDA, SCL;
+INT/LPn/I2C_RST left to the breakout's own resistors. Solder a header strip
+to #2 first: push-fit jumpers in castellated holes are the one connection a
+meter cannot vouch for, and the rig wants a solid mount anyway.
+
+**RESOLUTION — the sensors were innocent. So was every wire.**
+
+Both SATELs showed the identical clamp on fresh jumper wires, which finally
+proved the fault systematic rather than component-level. Tony then mapped the
+U585 board's header hole by hole and found it: **the B-U585I-IOT02A's ARDUINO
+digital header does not start where the NUCLEO-F446RE's does.** Its first
+position is unpopulated and SCL begins one hole down. Wiring by position —
+F446RE muscle memory from the bacnet-gateway builds — shifted every signal
+wire by one, on every attempt, on both sensors, with any wire set. On a
+shifted row some wire always finds a ground or a loaded net, which is where
+the unliftable SDA clamp came from.
+
+The earlier "suspect silicon" verdict on SATEL #1 is **withdrawn** — the
+chip was reacting to a miswired harness, not failing. Both sensors are fine.
+
+With every wire placed by reading the silkscreen label at each end —
+never by counting positions — the bus reads clean, and stayed clean when the
+5 V/AVDD wire landed, the step that had produced the clamp on every previous
+attempt.
+
+Lessons, in the order they were paid for:
+
+1. **Wire label-to-label, never position-to-position.** Two boards sharing a
+   connector standard can still differ in physical hole layout.
+2. A pin reading high through a board-side pull-up proves nothing about what
+   is (or is not) connected to it.
+3. A powered chip with a broken harness can actively clamp a line in ways
+   that mimic a copper short — no continuity beep, immune to reset — because
+   its return current or a resistor-fed rail is involved. "No beep but 0 V
+   under power" means active silicon, and active silicon means look at the
+   harness before condemning the part.
+4. The fastest debugging tools here were a 30-line GPIO test and a
+   multimeter, alternated. Neither alone was sufficient.
+
+### VL53L5CX-SATEL wiring
+
+Authority: **AN5717 Rev 4**, *How to setup and run the VL53L5CX-SATEL using an
+STM32 Nucleo64 board*, Table 1. Pin names on our board read off the silkscreen
+directly (see `images/`); the breakout carries eight pads:
+
+`INT · I2C_RST · SDA · SCL · LPn · AVDD · IOVDD · GND`
+
+**The supplies are not interchangeable and neither is 3.3 V:**
+
+| SATEL pin | Connect to | Notes |
+|-----------|-----------|-------|
+| `AVDD` | **+5 V** | analog supply, an **input** |
+| `IOVDD` | **+3.3 V** | I/O supply, also an **input** — not a regulator output |
+| `GND` | GND | |
+| `SCL` | D15 → **PB8** | |
+| `SDA` | D14 → **PB9** | |
+| `LPn` | free GPIO, or tie to 3.3 V | must be high for I2C to answer |
+| `I2C_RST` | free GPIO, or tie to GND | active high; low = not reset |
+| `INT` | free GPIO | optional — poll for data-ready during bring-up |
+
+Web sources disagreed on whether `IOVDD` was an input or a regulator output,
+which is exactly the kind of thing not to resolve by majority vote — driving
+3.3 V into a regulator output damages the part. AN5717 settles it: both are
+inputs, and they come from two different rails.
+
+Power sequencing from the VL53L5CX datasheet: **IOVDD must come up at the same
+time as, or after, AVDD.** Powering IOVDD while AVDD is dead raises leakage.
+Wiring both to the board's own rails satisfies this automatically, since they
+come up together.
+
+**Convenient coincidence:** ST's reference wiring is to a NUCLEO-F401RE, where
+`SCL` = D15 = **PB8** and `SDA` = D14 = **PB9** — the same STM32 port pins our
+U585 uses for its ARDUINO header I2C. That is the Arduino Uno V3 standard
+mapping doing its job, and it means AN5717's I2C connections transfer to this
+board unchanged.
+
+**Do not break the board.** The SATEL is perforated so the sensor mini-PCB can
+be snapped off for 3.3 V flying-lead use, which is a different supply
+arrangement from the one above. Table 1 describes the intact board; keep it
+intact.
+
+### The wiring as built (2026-08-01, verified electrically)
+
+Five wires, **each placed by reading the silkscreen label at both ends** —
+see the debugging record below for why that rule is written in bold:
+
+| Board label | SATEL label | Purpose |
+|-------------|-------------|---------|
+| `5V` | `AVDD` | analog supply — confirmed present and measured 5.0 V |
+| `3V3` | `IOVDD` | I/O supply, 3.3 V |
+| `GND` | `GND` | common ground |
+| `D15 SCL` | `SCL` | I2C1 clock (PB8) |
+| `D14` | `SDA` | I2C1 data (PB9) |
+
+`INT`, `LPn`, `I2C_RST` are left unconnected: the breakout's own resistors
+hold `LPn` high (comms enabled) and `I2C_RST` low (not reset). `INT` becomes
+relevant when frame-ready moves from polling to interrupts later in Phase 1 —
+any free header GPIO will do at that point; ST's reference uses A1/A2/A3.
+
+**Board trap, the expensive kind:** the B-U585I-IOT02A's ARDUINO digital
+header is not populated identically to a NUCLEO-64's — the first position is
+empty and `SCL` starts one hole down. Position-counted wiring transplanted
+from F446RE habit lands every wire one off. The full story is in the
+debugging record.
 
 ---
 

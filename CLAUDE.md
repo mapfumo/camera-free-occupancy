@@ -135,7 +135,8 @@ Do not add BACnet/gateway integration (Phase 5) before Phase 4 live inference is
 - Output: 64 distance values (mm) + 64 signal strength values per frame
 - Requires ST's ULD C driver linked via FFI — see Phase 1 in `occupancy-sensor-project-plan.md`
 - Lighting-independent; good for position/count
-- Confirm I2C bus from B-U585I-IOT02A user manual before wiring — do not assume pin numbers
+- **Wiring (confirmed on hardware — see NOTES.md for the full story):** I2C1 on PB8 (SCL) / PB9 (SDA) via the ARDUINO header; SATEL takes `AVDD`←5V, `IOVDD`←3.3V, `GND`, `SCL`←`D15 SCL`, `SDA`←`D14`; leave `INT`/`LPn`/`I2C_RST` unconnected (on-board resistors). **Wire label-to-label, never by counted position** — this board's ARDUINO header has an unpopulated first position, unlike a NUCLEO-64, and position-counting cost a full bench session.
+- ULD address convention is 8-bit (`0x52`); Embassy wants 7-bit (`0x29`). The platform layer in `firmware/src/vl53l5cx/platform.rs` shifts — do not "fix" it.
 
 **AMG8833 (Grid-EYE thermal IR):**
 - Output: 64 temperature readings (°C) per frame, 8×8 grid, ~10 Hz max

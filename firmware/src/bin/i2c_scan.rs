@@ -44,8 +44,7 @@ use embassy_time::{Duration, Timer};
 use defmt_rtt as _;
 use panic_probe as _;
 
-#[path = "../clock.rs"]
-mod clock;
+use coworkos_firmware::clock;
 
 /// 0x00–0x07 and 0x78–0x7f are reserved by the I2C specification and are not
 /// probed — addressing them is not merely useless but can put some devices
