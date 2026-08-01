@@ -7,5 +7,6 @@
 
 #![no_std]
 
+pub mod amg8833;
 pub mod clock;
 pub mod vl53l5cx;
