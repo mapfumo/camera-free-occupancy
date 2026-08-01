@@ -247,7 +247,7 @@ each placed by reading the silkscreen label at both ends:**
 |-------------|--------------------|---------|
 | `5V` | `AVDD` | LDO input |
 | `3V3` | `IOVDD` | I/O rail |
-| `3V3` | `PWR_EN` | **LDO enable — without this the sensor is dark** |
+| `A5` | `PWR_EN` | **LDO enable — without this the sensor is dark.** A5 = **PB0** on this board (UM2839 Table 24 + Zephyr DTS agree; a NUCLEO-64's A5 is PC0). Driven high by firmware, which also buys a programmatic hard power-cycle of the sensor later |
 | `GND` | `GND` | common ground |
 | `D15 SCL` | `SCL` | I2C1 clock (PB8) |
 | `D14` | `SDA` | I2C1 data (PB9) |

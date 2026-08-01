@@ -36,6 +36,7 @@
 
 use defmt::info;
 use embassy_executor::Spawner;
+use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Blocking;
 use embassy_stm32::time::Hertz;
@@ -97,6 +98,17 @@ async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(clock::config());
 
     info!("I2C scan — B-U585I-IOT02A / STM32U585");
+    info!("");
+
+    // The SATEL's on-board LDO is gated by PWR_EN, which defaults OFF — an
+    // unpowered regulator looks exactly like an absent sensor, which cost a
+    // bench session to learn. PWR_EN is wired to the A5 header hole; A5 is
+    // PB0 on this board (UM2839 Table 24, corroborated by Zephyr's DTS —
+    // NOT PC0 as on a NUCLEO-64). Drive it high and give the LDO plus the
+    // sensor's firmware boot a moment before probing the bus.
+    let _satel_power = Output::new(p.PB0, Level::High, Speed::Low);
+    info!("SATEL PWR_EN (A5/PB0) driven high; waiting for LDO + sensor boot");
+    Timer::after(Duration::from_millis(100)).await;
     info!("");
 
     // The on-board bus carries its own pull-ups, so the internal ones stay off.
