@@ -31,7 +31,6 @@ use core::ffi::c_void;
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Blocking;
 use embassy_time::{Duration, block_for};
-use embedded_hal::i2c::Operation;
 
 use super::bindings::VL53L5CX_Platform;
 
@@ -171,12 +170,28 @@ pub unsafe extern "C" fn VL53L5CX_RdMulti(
     }
 }
 
+/// Largest payload sent in one I2C transaction by [`VL53L5CX_WrMulti`].
+///
+/// Plus the two address bytes, this is the scratch buffer that gets staged on
+/// the stack for every chunk. 256 keeps that buffer small while holding the
+/// per-chunk overhead — two address bytes, a start and a stop — to under 2%.
+const WRITE_CHUNK: usize = 256;
+
 /// Write a buffer starting at a 16-bit register address.
 ///
-/// Sent as two merged writes rather than one staged buffer: the firmware
-/// download pushes 32 KB per call, which no scratch buffer here could hold.
-/// Consecutive `Operation::Write`s are merged into a single bus transaction,
-/// so the sensor sees the address and payload without a stop between them.
+/// Split into chunks, each an ordinary write of `[reg_hi, reg_lo, payload...]`
+/// with the register address advanced by the number of bytes already sent.
+/// The sensor auto-increments its own address pointer, so a run of chunks
+/// lands identically to one continuous write — which is how the Arduino ULD
+/// ports have always done it.
+///
+/// The first version of this issued two merged `Operation::Write`s to avoid
+/// staging a buffer, on the grounds that firmware download pushes 32 KB per
+/// call. That failed: `vl53l5cx_init` returned an error while single-byte
+/// access worked perfectly. Chunking removes the dependency on how the I2C
+/// driver merges operations and on how it reloads `NBYTES` past 255 bytes —
+/// neither of which the sensor cares about, and both of which are easy to be
+/// subtly wrong about.
 ///
 /// # Safety
 ///
@@ -198,14 +213,29 @@ pub unsafe extern "C" fn VL53L5CX_WrMulti(
         return STATUS_ERROR;
     }
 
-    let reg = register_address.to_be_bytes();
     let data = unsafe { core::slice::from_raw_parts(p_values, size as usize) };
+    let mut buffer = [0u8; 2 + WRITE_CHUNK];
 
-    let mut operations = [Operation::Write(&reg), Operation::Write(data)];
-    match i2c.blocking_transaction(address, &mut operations) {
-        Ok(()) => STATUS_OK,
-        Err(_) => STATUS_ERROR,
+    for (index, chunk) in data.chunks(WRITE_CHUNK).enumerate() {
+        // Wrapping is not expected — the sensor's register space is 16-bit and
+        // the ULD never asks for a transfer that would run off the end — but
+        // wrapping arithmetic keeps this total rather than trusting that.
+        let offset = (index * WRITE_CHUNK) as u16;
+        let reg = register_address.wrapping_add(offset);
+
+        buffer[0] = (reg >> 8) as u8;
+        buffer[1] = reg as u8;
+        buffer[2..2 + chunk.len()].copy_from_slice(chunk);
+
+        if i2c
+            .blocking_write(address, &buffer[..2 + chunk.len()])
+            .is_err()
+        {
+            return STATUS_ERROR;
+        }
     }
+
+    STATUS_OK
 }
 
 /// Byte-swap each 32-bit word in the buffer.
