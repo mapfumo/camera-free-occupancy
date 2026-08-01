@@ -225,6 +225,41 @@ be snapped off for 3.3 V flying-lead use, which is a different supply
 arrangement from the one above. Table 1 describes the intact board; keep it
 intact.
 
+### FIRST LIGHT — 0x29 answered, 2026-08-02
+
+```
+I2C1  (PB8 SCL / PB9 SDA)  — ARDUINO header, D15/D14
+    0x29  VL53L5CX 8x8 ToF  <-- target
+    1 device(s)
+```
+
+**Root cause of the entire saga: the ARDUINO digital header is `CN13`, and
+its pin order runs opposite to the assumption.** `SCL` is the **end pin**
+(top right as the board sits label-up), with `SDA` immediately beside it.
+Every wiring attempt before this placed those two by the ordering carried
+over from the NUCLEO-F446RE, and landed them elsewhere on the row.
+
+That single fact explains every symptom we chased for hours:
+
+- SDA "hard shorted to ground" — the SDA wire was in a genuine GND pin of
+  CN13, which is exactly what a hard short looks like, because it *was* one.
+- SCL "healthy" — PB8 was reading the board's own pull-up while the SCL wire
+  sat in an unrelated hole.
+- Immune to `I2C_RST`, unchanged by swapping sensors, reproducible across
+  three complete rewirings — because every rewiring reproduced the same
+  wrong ordering.
+- `find_pwren` finding nothing on A0–A5 — the sensor could not answer
+  regardless of `PWR_EN`, because its data line was grounded.
+
+Both SATELs are fine. Neither was ever damaged.
+
+**The lesson, now paid for in full: on an unfamiliar board, establish pin
+positions from the board itself before wiring anything.** Not from an
+application note written for a different board, not from a devicetree, not
+from a photograph — all three were consulted, and all three were consistent
+with a wiring that did not work, because they described *which signal is on
+which pin name* and never *which physical hole that pin name occupies*.
+
 ### The wiring (2026-08-01 — revised after the PWR_EN discovery)
 
 **The SATEL is two boards in one, and they take different supplies.** The
@@ -249,8 +284,8 @@ each placed by reading the silkscreen label at both ends:**
 | `3V3` | `IOVDD` | I/O rail |
 | `A5` | `PWR_EN` | **LDO enable — without this the sensor is dark.** A5 = **PB0** on this board (UM2839 Table 24 + Zephyr DTS agree; a NUCLEO-64's A5 is PC0). Driven high by firmware, which also buys a programmatic hard power-cycle of the sensor later |
 | `GND` | `GND` | common ground |
-| `D15 SCL` | `SCL` | I2C1 clock (PB8) |
-| `D14` | `SDA` | I2C1 data (PB9) |
+| `CN13` **end pin** | `SCL` | I2C1 clock (PB8). **The end of the row — top right, board label-up.** Not where NUCLEO-64 habit puts it |
+| `CN13` **second pin** | `SDA` | I2C1 data (PB9). Immediately beside SCL |
 
 `INT`, `LPn`, `I2C_RST` stay unconnected: the breakout's resistors hold
 `LPn` high (comms enabled) and `I2C_RST` low (not reset). `INT` becomes
