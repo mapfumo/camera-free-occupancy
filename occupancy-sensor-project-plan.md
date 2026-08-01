@@ -208,20 +208,25 @@ Suggested structure (matches your existing blog voice):
 
 ---
 
-## Suggested Timeline
+## Timeline
 
-| Week | Focus |
-|------|-------|
-| 1 | Phase 1 — hardware bring-up |
-| 2 | Phase 2 — data collection |
-| 3 | Phase 3 — model training |
-| 4 | Phase 4 — firmware integration |
-| 5 | Phase 5 — gateway/dashboard integration |
-| 6 | Phase 6 — real-world validation |
-| 7 | Phase 7 — write-up + (optional) reach out to 2–3 building/facilities contacts to show it |
+Superseded by `SIX_MONTH_ROADMAP.md`, which schedules these phases across
+2026-08-01 → 2027-02-01 alongside the FreeRTOS, KiCad, and C++ work. This
+project is the flagship of that roadmap, not a standalone 7-week sprint.
 
-Adjust freely — this is a side-project pace assumption (a few evenings
-+ one weekend session per phase), not a sprint plan.
+| Month | Phases here |
+|-------|-------------|
+| 1 — Aug 2026 | Phase 1 (bring-up) + Phase 2 (data collection) |
+| 2 — Sep 2026 | Phase 3 (model) + Phase 4 (live inference) |
+| 3 — Oct 2026 | Phase 5 (gateway/dashboard) |
+| 4 — Nov 2026 | — (FreeRTOS variant completed and measured) |
+| 5 — Dec 2026 | Phase 6 (real-world validation) |
+| 6 — Jan 2027 | Phase 7 (write-up) |
+
+The per-phase effort estimates above still hold; the roadmap adds slack
+around them rather than expanding the work. Note that the phase estimates
+assume the original side-project pace — at evenings-plus-weekends they will
+finish faster, and that headroom is what the satellite projects consume.
 
 ---
 
