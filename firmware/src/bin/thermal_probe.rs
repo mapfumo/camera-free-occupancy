@@ -31,7 +31,7 @@ use embassy_time::{Duration, Timer};
 use defmt_rtt as _;
 use panic_probe as _;
 
-use coworkos_firmware::amg8833::{Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
+use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
 
 /// Degrees (in centidegrees) above ambient at which a zone is called warm.
@@ -50,12 +50,29 @@ async fn main(_spawner: Spawner) {
     cfg.timeout = Duration::from_millis(100);
     let mut bus = I2c::new_blocking(p.I2C1, p.PB8, p.PB9, cfg);
 
-    let mut sensor = Amg8833::new(DEFAULT_ADDRESS);
+    // The AD_SELECT pin picks between two addresses, and breakout boards
+    // differ on how they strap it — the SparkFun board in this build answers
+    // at 0x69. Trying both beats hard-coding one and rediscovering the
+    // difference through a failed init.
+    let address = match probe(&mut bus, DEFAULT_ADDRESS) {
+        true => DEFAULT_ADDRESS,
+        false if probe(&mut bus, ALT_ADDRESS) => ALT_ADDRESS,
+        false => {
+            error!(
+                "no AMG8833 at 0x{=u8:02x} or 0x{=u8:02x} — check VIN, GND, SDA, SCL",
+                DEFAULT_ADDRESS, ALT_ADDRESS
+            );
+            stall().await;
+        }
+    };
+
+    info!("found AMG8833 at 0x{=u8:02x}", address);
+    let mut sensor = Amg8833::new(address);
 
     // 10 Hz for a responsive bench test. Phase 4 will likely drop to 1 Hz:
     // inference runs every 1–2 s, and the slower rate is quieter.
     if let Err(e) = sensor.init(&mut bus, FrameRate::Fps10) {
-        error!("AMG8833 init failed: {} — is it wired to 0x68?", e);
+        error!("AMG8833 init failed: {}", e);
         stall().await;
     }
 
@@ -155,6 +172,13 @@ fn shade(above_ambient: i16) -> u8 {
         d if d < WARM_STEP * 8 => b'%',     // hot — skin up close
         _ => b'#',                          // very hot — a mug, a soldering iron
     }
+}
+
+/// Does anything acknowledge this address? Same one-byte read the bus scanner
+/// uses, so a device found here is a device `i2c_scan` would have listed.
+fn probe(bus: &mut embassy_stm32::i2c::I2c<'static, embassy_stm32::mode::Blocking, embassy_stm32::i2c::Master>, address: u8) -> bool {
+    let mut byte = [0u8; 1];
+    bus.blocking_read(address, &mut byte).is_ok()
 }
 
 async fn stall() -> ! {
