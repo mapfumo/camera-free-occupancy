@@ -49,6 +49,44 @@ Ordered by when it matters, not by size.
       to the frame log. **Not** the B-CAMS-OMV; the job needs a camera and a
       clock, not a camera pipeline on the U585.
 
+## Use the board's own sensors
+
+Both of these are already soldered to the B-U585I-IOT02A, on I2C2 (PH4/PH5),
+which is a separate bus from the one our two sensors share. Nothing needs
+wiring and neither can disturb the sensors we care about.
+
+- [ ] **HTS221 (0x5f) — true ambient temperature.** The AMG8833 measures heat
+      *relative* to ambient, and `thermal_probe` currently approximates ambient
+      from the frame median. That works and needs no calibration, but it fails
+      in the one case that matters: a frame where a person fills most of the
+      view has a median that is partly person, so the reference drifts toward
+      the thing being measured. A real room temperature reading does not.
+      Second reason: a device reporting occupancy *and* temperature/humidity
+      over BACnet is what a real building sensor looks like, and Phase 5 is
+      already building that integration.
+- [ ] **ISM330DHCX (0x6b) — detect that the rig has been moved.** The
+      roadmap's biggest stated risk is that sensor geometry shifts between
+      sessions and injects label noise that stays invisible until the model
+      underperforms for reasons nobody can diagnose. An accelerometer already
+      on the board can catch exactly that: record the resting orientation, and
+      flag any session whose orientation does not match. It turns the
+      programme's worst failure mode from silent into loud, for very little
+      work. Worth having *before* Phase 2 collects anything.
+
+### Deliberately not using
+
+- **VEML6030 (0x10, ambient light).** Lights-on correlates strongly with
+  occupancy, so a model given this feature will likely learn "lights on =
+  occupied" and stop attending to the sensors — scoring well while having
+  learned nothing about the actual problem. If it is ever tried, it belongs
+  *after* the fused model works, evaluated specifically for whether it improved
+  anything or just found a shortcut.
+- **The on-board microphones.** Audio occupancy detection works, and is a
+  larger privacy problem than the camera this project exists to avoid. Using
+  them would demolish the premise.
+- **LPS22HH (0x5d, pressure).** Responds to HVAC and doors opening, so not
+  meaningless, but likely noise. Free to add later if a use appears.
+
 ## Firmware improvements, not urgent
 
 - [ ] **Move frame-ready from polling to the INT line.** The interrupt pin is
