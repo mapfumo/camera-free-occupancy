@@ -623,6 +623,62 @@ a couple of register reads, then the 86 KB firmware upload. When the first
 passed and the second failed, that immediately localised the bug to bulk
 transfers — no guessing.
 
+### The host-side viewer
+
+`tools/heatmap_viewer.py` runs on the PC, not the device. It reads the
+firmware's log output and draws it as a picture that updates live:
+
+```bash
+cd firmware
+cargo run --release --bin tof_range | python3 ../tools/heatmap_viewer.py
+```
+
+**Why it exists.** The project's biggest risk is a badly aimed sensor rig
+where every recorded frame carries the same invisible defect — not discovered
+until a model underperforms for reasons nobody can diagnose. Watching a live
+heatmap *while positioning the rig* is the cheapest possible defence, and it
+only helps if it exists before the rig is built.
+
+It also records to CSV, which is Phase 2's data collection in its simplest
+form:
+
+```bash
+cargo run --release --bin tof_range \
+  | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
+```
+
+One label per session rather than annotating afterwards: far less error-prone,
+and a session labelled wrongly can be thrown away whole instead of picked
+apart.
+
+**Two things in it worth understanding.**
+
+*It parses text rather than a binary protocol.* The firmware already prints
+readable grids for anyone watching the terminal, so consuming those adds no
+firmware code and keeps one source of truth. That's the right trade now and
+the wrong one later — a binary frame format would be faster and unambiguous —
+but that belongs with the combined-stream work.
+
+*Colour maps are perceptually uniform, never rainbow.* `jet` and `turbo` are
+the reflex choice for sensor data and they actively mislead. Their lightness
+isn't monotonic, so they manufacture bright and dark bands where the data is
+perfectly smooth, and the eye reads those bands as edges that aren't in the
+scene. `viridis` and `inferno` climb steadily from dark to light, so an
+apparent boundary is a real one. They also survive colour-blindness and
+greyscale printing, which matters when these plots reach the write-up.
+
+Zones with no valid reading are drawn in a neutral grey that appears nowhere
+on the ramp — "nothing within range this way" is a real observation, and
+painting it as a distance would put a false hard edge in the picture.
+
+**And one bug worth remembering.** The obvious way to rescale a matplotlib
+image is `set_clim(vmin, vmax)`. With a colourbar attached, matplotlib 3.6
+mangles it — asking for `vmin=815` produced `0.9`, and the plot renders with a
+silently wrong scale rather than raising an error. Installing a fresh
+`Normalize` via `set_norm` works correctly. This is exactly the class of bug
+that survives review: no crash, no warning, just a picture that means
+something other than what it appears to.
+
 ---
 
 ## 10. Problems we hit, and what fixed them
