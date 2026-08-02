@@ -24,13 +24,23 @@ Ordered by when it matters, not by size.
       rig: what this captures is Phase 2's dataset, and the geometry it records
       should be the final one. Building it against jumpers means recording a
       layout that is about to change.
-- [ ] **Aim the AMG8833 and confirm it sees a warm target.** As of the last
-      run it reported a uniform room with nothing warm ever entering the field
-      of view — the sensor works, but it has not yet been pointed at anything.
+- [x] ~~Aim the AMG8833 and confirm it sees a warm target.~~ Done — hot mug
+      peaked at 71.5 °C against a ~21 °C room, appearing and disappearing
+      cleanly. Entered from the bottom-left, which fixes its orientation.
 - [ ] Tag `phase1-bringup` once the above is done.
 
 ## Before Phase 2 data collection
 
+- [ ] **Allow settling time between classes when recording.** The AMG8833
+      retains heat: after a mug was removed the whole frame still read ~1 °C
+      high, with the die 1.25 °C up. Frames recorded straight after a person
+      leaves still contain them, so back-to-back sessions would put the warm
+      ghost of `sitting` into the `empty` set. Decide a settling period and
+      write it into the collection procedure.
+- [ ] **Decide whether thermal persistence is a feature.** A recently vacated
+      chair stays warm, which genuinely separates "occupied a minute ago" from
+      "empty all morning". Worth exploiting deliberately — but only
+      deliberately, never as an accident in the training data.
 - [ ] **Decide what an invalid ToF zone means as model input.** Valid-zone
       count swings 0/64 to 64/64 with no fault — a zone reports nothing when
       nothing is in range, which at room scale is constant. This is a real

@@ -225,6 +225,52 @@ be snapped off for 3.3 V flying-lead use, which is a different supply
 arrangement from the one above. Table 1 describes the intact board; keep it
 intact.
 
+### AMG8833 verified with a hot mug — PASSED, 2026-08-02
+
+Both sensors are now confirmed against real targets. The thermal response:
+
+| Frame | Reading | What was happening |
+|-------|---------|--------------------|
+| 20 | span 475 | baseline, empty room |
+| 22 | span 2475, `4625` bottom-left | mug entering the field of view |
+| 28 | span 3850 | mug closer, hot region spreading |
+| 96 | median 6675, peak 6900 | mug filling most of the view |
+| 162 | span 650 | mug withdrawn, back to baseline |
+
+Peak pixel 7150 c°C — 71.5 °C, right for hot tea. It appeared, grew and
+disappeared, which is what rules out a stuck reading rather than the peak
+value alone. The mug entered from the **bottom-left**, which fixes the
+sensor's orientation relative to the scene.
+
+**Finding: the sensor retains heat, and the whole image shifts with it.**
+
+Baseline before the mug: median ~2075–2225, die 2331. Baseline twenty
+seconds after removing it: median ~2200–2350, die 2456. The die gained
+1.25 °C and every pixel rose with it.
+
+A thermopile measures the difference between its own package and what it is
+pointed at, so anything that warms the package shifts the entire frame. A mug
+did it in under a minute; a person sitting nearby for an hour will do it more
+slowly and more permanently.
+
+Three consequences worth carrying into Phase 2 and 3:
+
+1. **Absolute temperature thresholds will not work.** "Warmer than 25 °C
+   means occupied" drifts with the sensor's own history, never mind the
+   season. The frame-median reference already in `thermal_probe` sidesteps
+   this by construction — half of any realistic frame is background, so the
+   reference moves with the package. That design choice was made for a
+   different reason and turns out to matter more than intended.
+2. **Consecutive frames are not independent samples.** The sensor carries
+   thermal state, so a frame recorded moments after a person leaves still
+   contains them. Data collection needs settling time between classes, or
+   the `empty` set will quietly contain the warm ghost of the previous
+   session.
+3. **This is a real signal, not only a nuisance.** A recently vacated chair
+   stays warm. That is genuinely useful for occupancy — it distinguishes "was
+   occupied a minute ago" from "empty all morning" — but only if it is
+   deliberate rather than an accident in the training data.
+
 ### Phase 1 sensing checkpoint — PASSED, 2026-08-02
 
 `tof_range` streaming 8×8 at 10 Hz, hand and object motion tracked correctly.
