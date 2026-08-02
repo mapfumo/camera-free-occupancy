@@ -13,9 +13,13 @@
 //! # Reading the output
 //!
 //! Temperatures in centidegrees Celsius, so 2537 is 25.37 °C. The map bands
-//! are relative to the thermistor reading — the sensor's own die temperature
-//! standing in for ambient — because what matters for occupancy is "warmer
-//! than the room", not an absolute threshold that drifts with the weather.
+//! are relative to the **frame's own median**, because what matters for
+//! occupancy is "warmer than the room", not an absolute threshold that drifts
+//! with the weather.
+//!
+//! The die thermistor is reported too, but is deliberately *not* the
+//! reference: it self-heats a couple of degrees above the scene, so banding
+//! against it renders every room surface as "cold" and the map goes blank.
 //!
 //! Run with: `cargo run --release --bin thermal_probe`
 
@@ -24,6 +28,7 @@
 
 use defmt::{error, info};
 use embassy_executor::Spawner;
+use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::i2c::I2c;
 use embassy_stm32::time::Hertz;
 use embassy_time::{Duration, Timer};
@@ -34,7 +39,7 @@ use panic_probe as _;
 use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
 
-/// Degrees (in centidegrees) above ambient at which a zone is called warm.
+/// Band width, in centidegrees above the frame median.
 /// A clothed person at a couple of metres reads a fraction of a degree above
 /// room temperature; skin much closer reads several.
 const WARM_STEP: i16 = 50; // 0.50 °C per band
@@ -44,6 +49,20 @@ async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(clock::config());
 
     info!("AMG8833 Grid-EYE — live 8x8 thermal");
+
+    // Power the VL53L5CX even though this binary never talks to it.
+    //
+    // An unpowered device on a shared bus is not a neutral one: with PWR_EN
+    // low the SATEL's regulator is off, and the ToF's I/O protection diodes
+    // clamp SDA and SCL toward its own dead rail, loading the bus enough that
+    // the AMG8833 cannot be reached either. Found the hard way — i2c_scan
+    // (which asserts PWR_EN) saw the Grid-EYE at 0x69 while this binary saw
+    // nothing at all.
+    //
+    // The rule for every binary on this board: if you use I2C1, assert PWR_EN,
+    // whichever sensor you actually want.
+    let _tof_power = Output::new(p.PB0, Level::High, Speed::Low);
+    Timer::after(Duration::from_millis(100)).await;
 
     let mut cfg = embassy_stm32::i2c::Config::default();
     cfg.frequency = Hertz::khz(100);
@@ -121,13 +140,26 @@ async fn main(_spawner: Spawner) {
             max = max.max(pixel);
         }
 
+        // Band against the frame's own median, not the thermistor.
+        //
+        // The thermistor is the sensor's die, which self-heats a couple of
+        // degrees above the scene it is looking at — so referencing it made
+        // every room surface read "colder than ambient" and the map said
+        // nothing at all. The median is the room itself: half the pixels are
+        // background by definition, however warm or cold the room happens to
+        // be, and a person is what stands above it.
+        let mut sorted = frame;
+        sorted.sort_unstable();
+        let median = sorted[PIXELS / 2];
+
         info!(
-            "--- frame {=u32} --- ambient {=i16} c°C, pixels {=i16}..{=i16} c°C (span {=i16})",
+            "--- frame {=u32} --- median {=i16}, range {=i16}..{=i16} c°C (span {=i16}), die {=i16}",
             count,
-            ambient,
+            median,
             min,
             max,
-            max - min
+            max - min,
+            ambient
         );
 
         for row in 0..8usize {
@@ -137,7 +169,7 @@ async fn main(_spawner: Spawner) {
             for col in 0..8usize {
                 let value = frame[row * 8 + col];
                 cells[col] = value;
-                art[col] = shade(value - ambient);
+                art[col] = shade(value - median);
             }
 
             let map = core::str::from_utf8(&art).unwrap_or("????????");
@@ -158,16 +190,18 @@ async fn main(_spawner: Spawner) {
     }
 }
 
-/// One character per pixel, banded by how far above ambient it reads.
+/// One character per pixel, banded by how far it sits above the frame median.
 ///
 /// Relative rather than absolute on purpose: a 22 °C room and a 28 °C room
-/// should produce the same picture of the same person, and only a difference
-/// from ambient does that.
-fn shade(above_ambient: i16) -> u8 {
-    match above_ambient {
-        d if d < -WARM_STEP => b'-',        // colder than ambient — a window
-        d if d < WARM_STEP => b'.',         // room temperature
-        d if d < WARM_STEP * 2 => b'+',     // faintly warm
+/// should produce the same picture of the same person. The median stands in
+/// for "the room" because at least half of an 8×8 frame is background in any
+/// realistic scene, so it tracks the room without needing to be told what the
+/// room is.
+fn shade(above_median: i16) -> u8 {
+    match above_median {
+        d if d < -WARM_STEP => b'-',        // cooler than the room — a window
+        d if d < WARM_STEP => b'.',         // background
+        d if d < WARM_STEP * 2 => b'+',     // faintly warm — a person at range
         d if d < WARM_STEP * 4 => b'*',     // clearly warm — a person nearby
         d if d < WARM_STEP * 8 => b'%',     // hot — skin up close
         _ => b'#',                          // very hot — a mug, a soldering iron
