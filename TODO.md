@@ -42,9 +42,15 @@ Ordered by when it matters, not by size.
       above background — the same order as the sensor's noise floor. Does not
       affect the model, which sees raw values, but the human-readable map will
       look under-sensitive when the rig is mounted properly.
-- [ ] Host-side RTT heatmap viewer, per the roadmap's month-1 entry. Build it
-      *before* the rig, so alignment is something watched live rather than
-      discovered in matplotlib the next day.
+- [x] ~~Host-side RTT heatmap viewer.~~ Done — `tools/heatmap_viewer.py`.
+      Live view plus CSV recording, both sensors auto-detected. Verified
+      against captured logs and against live hardware.
+- [ ] **Use it while aiming the rig on Thursday.** The whole reason it was
+      built before the rig rather than after.
+- [ ] Consider a `--fixed-scale` option. Auto-scaling per frame is right for
+      aiming — maximum contrast on whatever is in view — but it makes colours
+      incomparable between frames, which is the wrong default once frames are
+      being compared rather than aimed.
 - [ ] Video ground truth setup — phone on a tripod, visible clock, time-synced
       to the frame log. **Not** the B-CAMS-OMV; the job needs a camera and a
       clock, not a camera pipeline on the U585.
