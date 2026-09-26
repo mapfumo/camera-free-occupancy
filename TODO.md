@@ -46,10 +46,35 @@ Ordered by when it matters, not by size.
       ~2 m, but whether that is the cone or the range is unknown. Walk out in
       half-metre steps and record where it is lost. That number decides how
       big a zone the product can honestly claim.
-- [ ] **Redo the orientation characterisation for both sensors.** The board is
-      portrait now; the hot-mug "entered from the bottom-left" finding is void
-      and the SATEL's grid orientation was never established. Provisional
-      evidence says row 0 is the top of the world view — confirm it.
+- [x] ~~Orientation characterisation, AMG8833.~~ Done 2026-09-26. **Behind
+      the sensor looking out: column 0 on your left, column 7 on your right;
+      row 0 at the bottom of the view, row 7 at the top.** Horizontally
+      normal, vertically inverted.
+- [ ] **START HERE TOMORROW — establish the ToF orientation and check
+      registration.** The AMG is vertically inverted. The only ToF evidence
+      (A3 against the chest, r0 nearer than r1) says its row 0 is the *top* —
+      the opposite. If that holds, the two grids are mirror images and Gate 3
+      concatenates them into one 128-value vector, which hands the model two
+      opposed views of the same scene. Recoverable by a dense net at the cost
+      of capacity; actively wrong for anything convolutional. Settle it before
+      recording a single frame.
+- [ ] **Flip the rows in the driver, not the viewer.** Everything watched on
+      2026-09-26 rendered with the floor at the top. Fix it in one place so
+      the CSV, the model input and the live display all agree with the world.
+      Flipping only the viewer leaves recorded data disagreeing with what was
+      watched while recording it.
+- [ ] **Build a dual-modality target.** A hot water bottle taped behind a
+      piece of card: a flat surface at a known distance for the ToF and a
+      large warm area for the thermal, in the same place at the same instant.
+      Makes grid agreement directly readable instead of inferred, and removes
+      the two-probes-two-placements error that made today's column mapping
+      ambiguous. Large area and moderate temperature beat small and hot —
+      see NOTES on why a 450 °C soldering iron is a *worse* probe than a mug.
+- [ ] **Re-check the mount angle.** Measured at ~20° on 2026-09-26 against
+      15° as set, derived two ways from known mug positions. Either the ball
+      head crept or 15° was never achieved. Two known targets at different
+      heights recover the angle without an inclinometer — keep that as the
+      procedure.
 - [ ] **Mark the ball head, clamp position and column extension.** A long
       column with an offset load on a ball joint, clamped to a desk people
       lean on, is the geometry-drift risk in physical form.
@@ -122,10 +147,11 @@ Ordered by when it matters, not by size.
       against captured logs and against live hardware.
 - [ ] **Use it while re-aiming the rig.** The whole reason it was built
       before the rig rather than after.
-- [ ] Consider a `--fixed-scale` option. Auto-scaling per frame is right for
-      aiming — maximum contrast on whatever is in view — but it makes colours
-      incomparable between frames, which is the wrong default once frames are
-      being compared rather than aimed.
+- [ ] **Implement `--fixed-scale`** — promoted from "consider" on 2026-09-26.
+      Auto-scaling per frame is right for aiming, but it made the ToF sweep
+      unreadable: in a cluttered scene the colour mapping rescales every frame
+      and everything appears to jump. Wrong default the moment frames are
+      being compared rather than aimed at.
 - [ ] Video ground truth — **use the webcam already on top of the monitor.**
       It is aimed at the chair, host-timestamped, and needs no rigging, so it
       replaces the phone-on-a-tripod plan. **Not** the B-CAMS-OMV; the job

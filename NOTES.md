@@ -715,6 +715,200 @@ top of every reading and can masquerade as signal.
   definition that assumes it will see a stationary person against a wall is
   wrong.
 
+### Thermal dilution, and why peak temperature cannot classify — 2026-09-26
+
+A hot mug of coffee turns out to be the most instructive target of the day.
+
+#### Dilution is quantitative and it dominates at range
+
+Mug held at 1.8 m: a single dominant zone at r1c4, **+2.75 to +3.0 °C** over a
+21.0 °C background, with +1.0 to +1.5 °C spill into two neighbours.
+
+At 1.8 m an AMG zone covers ~23.6 cm, so ~557 cm² of scene. A mug presents
+roughly 8 x 10 cm to the sensor — about **14% fill**. Working back from
++3.0 °C gives an outer surface near **42 °C**, which is right for ceramic
+with hot coffee inside: the wall is far cooler than the liquid.
+
+Compare the bench test of 2026-08-02, where the same class of object read
+**71.5 °C** at desk distance and filled most of a zone. Same object, same
+physics: 71.5 °C at ~25 cm, +3 °C at 180 cm. **Apparent temperature is a
+function of range**, and at room distances dilution dominates everything else.
+
+#### Peak temperature does not discriminate — extent does
+
+| target | peak Δ | zones |
+|--------|--------|-------|
+| person at 1.8 m | +3.5 °C | 6–8 |
+| coffee mug at 1.8 m | +3.0 °C | 1–2 |
+
+A classifier thresholding on the hottest pixel calls a hot drink an occupant,
+with near-identical confidence. The discriminator is **spatial extent**, about
+4:1 between them. The 8x8 structure is not a refinement over a single-pixel
+thermopile — it is the entire reason this works.
+
+Consequences:
+
+- **No fixed temperature thresholds.** They cannot survive varying range.
+- **Range must not correlate with class** in the training set, or the model
+  learns distance instead of posture.
+- **Named false-positive class for the limitations section:** hot drinks,
+  laptop vents, radiators, a recently vacated chair. Small hot things look
+  like distant people to anything measuring temperature alone.
+
+#### Three objects, three signatures
+
+- **Fan** (130 cm) — dominates columns 3–7 of the ToF, thermally absent
+  entirely; it sits at ambient.
+- **Person** (180 cm) — invisible to the ToF against a wall at their own
+  range, thermally broad and obvious.
+- **Mug** (180 cm) — thermally bright, spatially tiny, ToF-negligible.
+
+No single sensor and no single statistic separates all three. This is the
+strongest form of the fusion argument available, and every leg of it is now
+measured rather than asserted.
+
+#### Orientation mapping — first position, and it already found something
+
+Protocol correction worth recording: the probe must be **alone** in the frame.
+A first attempt with the mug held near the subject's head was uninterpretable,
+because the person is a 6–8 zone target and the mug is a 1–2 zone one — the
+small source vanishes inside the large one, and the frames changed between
+captures from movement.
+
+First clean position — mug on a stool, centre, 180 cm out, **48 cm high**,
+subject out of view — lands at **r2 c3**, +1.25 to +1.5 °C.
+
+That **does not match prediction**. The mug is 118 cm below the sensor at
+180 cm out, so 33.2° below horizontal; with the axis nominally at 15° that is
+18.2° below the axis, which at 7.5° per row should be the **seventh row from
+the top**. It landed in the third.
+
+Two candidate explanations, not yet separated:
+
+1. **The AMG grid is vertically flipped** — displayed row 0 is the *bottom* of
+   the world view. That alone moves the prediction to displayed row 1, one row
+   from what was seen.
+2. **The tilt is not 15°.** A flipped grid plus a true tilt near 22° predicts
+   r2 exactly. That would mean the ball head crept between setting the angle
+   and the capture — the drift risk already on the list, showing up in data.
+
+Note this **contradicts the provisional ToF finding** that row 0 is the top.
+There is no reason two independently mounted breakouts should agree, and
+every reason to establish each separately.
+
+Signal strength caveat: the mug had cooled from +3.0 °C to +1.25 °C over about
+twenty minutes, which is at the inter-capture drift floor. Reheat between
+positions or the mapping will be ambiguous where it most needs to be sharp.
+
+### AMG8833 orientation map — resolved, 2026-09-26
+
+Resolves the ambiguity left open in the previous section. Established by
+moving a boiling-water mug to known positions and, for the direction
+questions, by sweeping it live in `tools/heatmap_viewer.py` — which answered
+in seconds what capture-and-analyse had spent eight round trips failing to
+pin down.
+
+> **Standing behind the sensor and looking out along its axis: column 0 is on
+> your left and column 7 on your right. Row 0 is at the bottom of the view and
+> row 7 at the top.**
+
+So the grid is **horizontally normal and vertically inverted** in the sensor's
+own frame.
+
+Evidence:
+
+- **Vertical.** Mug at 180 cm out, centre: 48 cm high → r2; raised to 120 cm
+  → r4. Higher in the world gives a *higher* row index. Predicted 2.5 rows of
+  movement, observed 2 — within single-zone quantisation.
+- **Horizontal.** Facing the sensor and moving the mug to the right moves the
+  blob *left* on screen. The subject's right is the sensor's left, so
+  sensor-left maps to low column numbers. Consistent with the earlier capture
+  where a 50 cm lateral move ran c3 → c5.
+
+#### Bonus: the sensor measured its own mounting angle
+
+With the row map known, each mug position gives an independent estimate of the
+optical axis:
+
+- mug at 120 cm sits 14.3° below horizontal, lands +3.75° above axis → **18.1°**
+- mug at 48 cm sits 33.2° below horizontal, lands 11.25° below axis → **21.9°**
+
+So the mount is at roughly **20°, not the 15° that was set**. The 4° spread is
+single-zone quantisation. Either the ball head crept after the angle was set,
+or 15° was never achieved — the drift risk already on the list, showing up in
+data within an hour of being flagged.
+
+Worth keeping as a procedure: **two known targets at different heights
+recover the mount angle**, with no inclinometer and no trusting the ball head.
+
+#### Consequence: everything watched today was upside down
+
+Every heatmap in this session rendered with the floor at the top. **Fix it in
+the driver, not the viewer** — one place, so the CSV, the model input and the
+live display all agree with the world. Flipping only the viewer leaves
+recorded data disagreeing with what was watched while recording it, which is
+the worst of the three options.
+
+#### Still open, and it is the one that costs: ToF registration
+
+The ToF's orientation is **not** established. The only evidence — A3 sheet
+held against the chest, where r0 read nearer than r1, which on a vertical
+surface means r0 is higher — points to **row 0 being the top**, the opposite
+of the AMG.
+
+If that holds, the two grids are vertically opposed. Gate 3 concatenates them
+into one 128-value vector, so the model would be handed two mirror-image views
+of the same scene: recoverable by a dense net at the cost of capacity, and
+actively wrong for anything convolutional. Establish it before a single frame
+is recorded.
+
+### Choosing a thermal probe: area beats temperature — 2026-09-26
+
+A 450 °C miniature soldering iron was considered as a stronger probe than the
+mug and rejected on the arithmetic, which follows directly from the dilution
+result.
+
+| probe | radiating area | excess over ambient | zone fill at 1.8 m | predicted Δ |
+|-------|----------------|---------------------|--------------------|-------------|
+| mug | ~80 cm² | ~21 °C | 14% | **+3.0 °C** (observed) |
+| iron tip | ~0.3 cm² | ~430 °C | 0.05% | +0.2 °C |
+| iron barrel | ~5 cm² | ~180 °C | 0.9% | +1.6 °C |
+
+The mug wins because it is **large**, not because it is hot. At room distances
+the zone-fill fraction dominates everything else.
+
+Second reason to reject it: the AMG8833 measures roughly **0–80 °C**. Close
+enough to fill a zone the iron saturates and the reading is meaningless; far
+enough not to saturate it is diluted into the noise. Bad at both ends.
+
+**What a good probe looks like:** large area, moderate temperature, high
+emissivity. A hot water bottle is close to ideal — big, holds temperature for
+an hour so no reheating between positions, and fabric or rubber is near
+emissivity 1.
+
+**Better still, one target both sensors can see.** Mapping the thermal grid
+with a mug and the ToF grid with a sheet means two probes, two placements and
+two sets of positioning error before the two maps can even be compared. A hot
+water bottle taped behind a piece of card gives the ToF a flat surface at a
+known distance *and* the thermal a warm area in the same place — so whether
+the two grids agree becomes directly readable rather than inferred. Build one
+before resuming.
+
+#### Why the ToF sweep was unreadable
+
+Attempting the same sweep on the ToF with the A3 sheet gave a blob "all over
+the place". Two causes, both fixable:
+
+- **Scene clutter.** The fan still occupies half the array at 130 cm, and the
+  sheet competes with walls and floor. Hold the target clearly nearer than its
+  background — at 1.2 m against a 1.8–2.0 m wall there is 60–80 cm of
+  separation and it stands out unambiguously.
+- **Per-frame auto-scaling in the viewer.** The colour mapping rescales every
+  frame, so in a busy scene everything appears to jump. This is the
+  `--fixed-scale` item already in TODO: auto-scaling is right for aiming at a
+  single target and wrong the moment frames are being compared. This session
+  is the argument for implementing it.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
