@@ -33,13 +33,13 @@ Ordered by when it matters, not by size.
       warm region. Note the part runs hotter than recorded — 42 °C within five
       frames, 51 °C at eight minutes and still climbing, so August's 44 °C was
       a short measurement, not a plateau.
-- [ ] **Fix the tilt — people land in rows 0-1 only.** Every person-height
-      return in every capture on 2026-09-26 landed in the top two rows: 16 of
-      64 zones usable, the rest floor, door jamb and out-of-range space.
-      Geometry says a person at 2 m spans ~44°, almost the full 45° field, so
-      they should nearly fill the frame. Reduce the tilt until a person at
-      working distance sits in the *middle* rows, then re-baseline the empty
-      room — every number in NOTES is tied to the current pose.
+- [x] ~~Fix the tilt.~~ Set to **15° below horizontal** on 2026-09-26,
+      derived rather than guessed: a 180 cm person at 2 m spans +4.0° to
+      −39.7° against a 45° field, midpoint −17.9°, biased shallow to keep the
+      head in frame. Valid zones went 24-26 → 38-42 of 64.
+- [ ] **Move the Philips fan out of the near field.** A metre-tall reflective
+      column at 130 cm occupying columns 3-7 of the ToF array. Treat "nothing
+      within ~1 m of the field" as a precondition for every capture.
 - [ ] **Move the boom clear of the door jamb.** A static strip at 0.85-0.98 m
       runs down column 7 in every frame. Confirm it frees up.
 - [ ] **Measure usable depth.** Detection is solid at ~1.5 m and absent at
@@ -70,6 +70,19 @@ Ordered by when it matters, not by size.
       leaves still contain them, so back-to-back sessions would put the warm
       ghost of `sitting` into the `empty` set. Decide a settling period and
       write it into the collection procedure.
+- [ ] **Site the zone so subjects have depth behind them.** Measured
+      2026-09-26: a person at 180 cm standing against a wall that reads
+      1.71-1.98 m is *invisible* to the ToF — ≤5 cm of shift, inside the
+      frame-to-frame noise. A ToF needs the subject to be nearer than
+      something. A doorway with a wall at arm's reach is the worst case
+      available. Aim across open space with the background well beyond the
+      subject, and never assume the ToF will see a stationary person against
+      a wall.
+- [ ] **Do not correlate range with class.** Apparent temperature falls with
+      distance because of zone averaging — a person peaked at 25.0 °C at
+      1.8 m against a 21.0 °C background, roughly 40% zone fill, where real
+      skin and clothing are ~31 °C. If one class is habitually collected
+      nearer than another, the model will learn range, not posture.
 - [ ] **Hold lighting constant across every capture.** A fluorescent lamp
       switched on mid-session contaminated a comparison on 2026-09-26. The
       VL53L5CX supplies its own 940 nm illumination and works in darkness —
@@ -132,7 +145,11 @@ wiring and neither can disturb the sensors we care about.
       the thing being measured. A real room temperature reading does not.
       Second reason: a device reporting occupancy *and* temperature/humidity
       over BACnet is what a real building sensor looks like, and Phase 5 is
-      already building that integration.
+      already building that integration. **Third, now measured:** between two
+      captures minutes apart on 2026-09-26 the die moved 0.19 °C and the frame
+      median 0.13 °C, putting up to ±1.25 °C of drift on off-target zones
+      against a peak signal of +3.5 °C. Slow ambient drift currently rides on
+      every reading and can masquerade as signal at only ~3:1.
 - [ ] **ISM330DHCX (0x6b) — detect that the rig has been moved.** The
       roadmap's biggest stated risk is that sensor geometry shifts between
       sessions and injects label noise that stays invisible until the model

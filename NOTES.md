@@ -608,6 +608,113 @@ on exactly for the sessions that produce video ground truth. Same rule applies.
   move through the day, and correlate with time rather than occupancy. Collect
   across times and weather; record as a known limitation.
 
+### Fusion demonstrated: ToF blind, thermal clear — 2026-09-26
+
+The best measurement of the session, and the one worth building the write-up
+around. Four captures, same pose, same lighting, minutes apart, each with its
+control.
+
+**Setup.** Sensor at 166 cm on the boom, tilted **15° below horizontal**
+(reduced from ~34° earlier in the session — see the derivation below).
+Subject 180 cm tall, standing 180 cm from the sensor in a doorway. A Philips
+tower fan, not running, at 130 cm. Room lighting off and unchanged throughout.
+
+#### Setting the tilt, derived rather than guessed
+
+A 180 cm person at 2 m, seen from 166 cm, spans from **+4.0°** (head, 14 cm
+above the sensor) to **−39.7°** (feet, 166 cm below): 43.7° of vertical angle
+against a 45° field. They should almost exactly fill the frame, and the
+midpoint of that span is **−17.9°**. 15° was chosen to bias slightly toward
+keeping the head in frame at the cost of the feet.
+
+Sanity check in the other direction: at 75° below horizontal the field spans
+52.5°–97.5° depression and a person at 2 m is entirely outside it. The angle
+is measured **from horizontal**; the board ends up nearly upright, leaning
+back slightly. At 15° the axis drops 27 cm per metre, so from 166 cm the aim
+point is 112 cm high at 2 m.
+
+The change did what it was supposed to: valid zones went from 24–26 to
+**38–42 of 64**.
+
+#### ToF: the subject is invisible
+
+Empty and occupied frames are identical to within tens of millimetres.
+
+| zone | empty | subject at 1.8 m |
+|------|-------|------------------|
+| r2 c1 | 1811 | 1822 |
+| r3 c1 | 1756 | 1713 |
+| r4 c1 | 1714 | 1664 |
+| valid zones | 39–42 | 38–41 |
+
+**Cause: no depth contrast.** The subject is 180 cm from the sensor and the
+wall behind them already reads **1.71–1.98 m** in those same zones. A ToF
+measures distance; a person standing against a background at their own range
+has almost nothing to be nearer *than*. The residual shift is ≤5 cm, which is
+inside the frame-to-frame variation.
+
+This is a fundamental property of the sensor, not a defect and not a tuning
+problem. It is also not reflectance — that hypothesis was tested and rejected
+separately (see the previous section).
+
+#### Thermal: the subject is obvious
+
+Difference map, subject minus empty, in centi-°C:
+
+```
+col:      1     2     3     4     5
+row0:   +25  +150  +350  +325   +50
+row1:     0  +250  +200  +200   -25
+row2:   -25  +125  +250   -25   -50
+row3:     0  +100  +200     0   -75
+```
+
+A contiguous blob across columns 2–4, rows 0–3, peaking at **+3.5 °C** over a
+21.0 °C background. Frame span doubles from 200–250 c°C empty to 475–550 c°C
+occupied.
+
+#### The asymmetry is the whole argument
+
+- The **fan** dominates columns 3–7 of the ToF frame and is **completely
+  invisible** to the thermal sensor — it sits at ambient, so thermally it does
+  not exist.
+- The **person** is invisible to the ToF and unmistakable in the thermal.
+
+One frame pair, both failure modes, in opposite directions. Each sensor is
+blind to exactly what the other sees clearly. That is a demonstrated reason to
+fuse them, and it is far stronger than the usual assertion that two modalities
+are better than one. **This pair belongs in the blog post.**
+
+#### Caveats, recorded honestly
+
+**Zone averaging dilutes temperature.** The subject peaks at 25.0 °C, not the
+~31 °C of real skin and clothing. At 1.8 m each thermal zone covers about
+24 cm, so a zone containing part of a person and part of a wall reports the
+mixture — roughly 40% fill on the hottest zone. Absolute temperature
+thresholds will therefore be unreliable at distance, which argues for a
+learned model over a fixed threshold. It also means apparent temperature falls
+with range, so range and class must not be correlated in the training set.
+
+**Global drift between captures.** Off-target zones moved by up to ±125 c°C
+between the two frames, while the die temperature moved 0.19 °C and the frame
+median 0.13 °C. The peak signal is therefore only about **3× the background
+drift** — a real result, but not a comfortable margin. This is direct evidence
+for the HTS221 ambient-reference item: slow ambient drift currently rides on
+top of every reading and can masquerade as signal.
+
+#### Consequences for the collection procedure
+
+- **Site the sensing zone so subjects have depth behind them.** A doorway with
+  a wall at arm's reach is the worst case available, which made it a useful
+  accident. Aim across open space so the background is well beyond the subject.
+- **Keep clutter out of the near field.** The fan is a metre-tall, highly
+  reflective column at 130 cm occupying more than half the ToF array. Move it,
+  and treat "nothing within ~1 m of the field" as a precondition for any
+  capture.
+- The ToF cannot be the sole presence signal at these ranges. Any class
+  definition that assumes it will see a stationary person against a wall is
+  wrong.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
