@@ -387,6 +387,38 @@ debugging record.
 
 ---
 
+### Re-verification after the break — 2026-09-26
+
+The rig was built on 2026-08-03 and then not touched for eight weeks. Re-checked
+before trusting anything it produces. Toolchain: Rust 1.92.0, probe-rs 0.30.0,
+ST-LINK V3 `002300453432511530343838` — same probe as the August work.
+
+Everything still works. Firmware builds clean, both buses enumerate as before:
+I2C2 shows the seven on-board devices, I2C1 shows `0x29` and `0x69`.
+
+**The AMG8833 is at 0x69, not 0x68.** This is not a regression and not a change
+— the SparkFun breakout straps AD_SELECT high, and `thermal_probe` has probed
+both addresses since August precisely because of it. What was wrong was the
+*documentation*: the roadmap, `CLAUDE.md` and `i2c_scan`'s own doc comment all
+named 0x68, and the scanner printed `<-- target` against 0x68 while the real
+sensor sat unmarked at 0x69. Knowledge that lives only in a source comment is
+knowledge that gets contradicted by the summary someone actually reads. Fixed
+in all four places.
+
+**Baseline before any ranging:** scene median 22.75 °C, span 2.3 °C,
+die 27.6 °C. The frame is not flat — the right-hand columns run roughly 1 °C
+warmer than the left. Worth knowing that this gradient exists *before*
+attributing any later one to the ToF.
+
+**VL53L5CX silicon reached 42 °C within five frames of ranging**, against the
+34 → 44 °C range recorded in August — then kept climbing: 48 °C at ~5 min,
+51 °C at ~8 min, still rising when the soak ended. August's 44 °C was not a
+plateau, it was a shorter measurement. Two things follow. The steady-state
+temperature is higher than recorded and not yet established, and the shield
+is a plausible cause — soldered to protoboard the part has less room to dump
+heat than it had on jumpers in open air. Treat 44 °C as a lower bound, not a
+maximum, anywhere it is quoted.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

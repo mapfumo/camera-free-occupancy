@@ -27,7 +27,7 @@
 //! ## Expected result
 //!
 //! - I2C2: 0x10, 0x1e, 0x56, 0x5d, 0x5f, 0x6b (six on-board devices)
-//! - I2C1: nothing until the sensors are wired; then 0x29 and 0x68
+//! - I2C1: nothing until the sensors are wired; then 0x29 and 0x69
 //!
 //! Run with: `cargo run --release --bin i2c_scan`
 
@@ -59,8 +59,8 @@ fn describe(addr: u8) -> &'static str {
     match addr {
         // Target sensors, on the ARDUINO header (I2C1)
         0x29 => "VL53L5CX 8x8 ToF  <-- target",
-        0x68 => "AMG8833 Grid-EYE (AD0 low)  <-- target",
-        0x69 => "AMG8833 Grid-EYE (AD0 high)",
+        0x68 => "AMG8833 Grid-EYE (AD0 low)",
+        0x69 => "AMG8833 Grid-EYE (AD0 high)  <-- target",
         // On-board MEMS, expected on I2C2 — these are the control group
         0x10 => "VEML6030 ambient light (on-board)",
         0x1e => "IIS2MDC magnetometer (on-board)",

@@ -8,18 +8,25 @@ Ordered by when it matters, not by size.
 
 ---
 
-## Finish Phase 1
+## Finish Gate 1 (Phase 1)
 
-- [ ] **Solder headers to the SATEL and build the sensor rig.** Waiting on the
-      ElectroCookie proto shields. Sockets on the shield, pins on the sensors,
-      so both stay removable — there is only one AMG8833 and desoldering a ToF
-      is how ToF sensors die.
-- [ ] **Leave a physical gap between the two sensors on the shield.** Measured,
-      not theoretical: the VL53L5CX climbed from 34 °C to 44 °C over a few
-      minutes of ranging. A thermopile mounted against that gains a permanent
-      bright corner in every frame, identical across all classes, quietly
-      eating dynamic range instead of failing visibly. Thermal sensor upstream
-      in any airflow.
+- [x] ~~Solder headers to the SATEL and build the sensor rig.~~ Built
+      2026-08-03 on the ElectroCookie proto shield: AMG8833 on a socket strip,
+      SATEL along the edge, both coplanar and facing the same way. Photo in
+      `../images/shield.jpg`.
+- [ ] **Re-verify the rig on hardware after the break.** Built on 2026-08-03
+      and not exercised since. Run `i2c_scan`, `tof_range`, `thermal_probe`
+      and the heatmap viewer against it before trusting any frame it produces.
+      Record the mounting height and angle in `NOTES.md` while doing it —
+      that is the geometry the whole dataset inherits.
+- [ ] **Confirm the thermal gap is sufficient.** The gap exists on the shield,
+      but it was chosen by eye and never tested. Measured, not theoretical:
+      the VL53L5CX climbed from 34 °C to 44 °C over a few minutes of ranging.
+      Run the ToF continuously for ten minutes and watch whether the AMG8833
+      grows a fixed bright corner. If it does, that corner appears in every
+      class identically, quietly eating dynamic range instead of failing
+      visibly — and it is far cheaper to find now than after a dataset exists.
+      Thermal sensor upstream in any airflow.
 - [ ] **Combined stream — both grids, one output.** Deliberately *after* the
       rig: what this captures is Phase 2's dataset, and the geometry it records
       should be the final one. Building it against jumpers means recording a
@@ -29,7 +36,7 @@ Ordered by when it matters, not by size.
       cleanly. Entered from the bottom-left, which fixes its orientation.
 - [ ] Tag `phase1-bringup` once the above is done.
 
-## Before Phase 2 data collection
+## Before Gate 2 data collection
 
 - [ ] **Allow settling time between classes when recording.** The AMG8833
       retains heat: after a mug was removed the whole frame still read ~1 °C
@@ -55,8 +62,8 @@ Ordered by when it matters, not by size.
 - [x] ~~Host-side RTT heatmap viewer.~~ Done — `tools/heatmap_viewer.py`.
       Live view plus CSV recording, both sensors auto-detected. Verified
       against captured logs and against live hardware.
-- [ ] **Use it while aiming the rig on Thursday.** The whole reason it was
-      built before the rig rather than after.
+- [ ] **Use it while re-aiming the rig.** The whole reason it was built
+      before the rig rather than after.
 - [ ] Consider a `--fixed-scale` option. Auto-scaling per frame is right for
       aiming — maximum contrast on whatever is in view — but it makes colours
       incomparable between frames, which is the wrong default once frames are
@@ -87,7 +94,10 @@ wiring and neither can disturb the sensors we care about.
       on the board can catch exactly that: record the resting orientation, and
       flag any session whose orientation does not match. It turns the
       programme's worst failure mode from silent into loud, for very little
-      work. Worth having *before* Phase 2 collects anything.
+      work. **Promoted 2026-09-26 from prudent to load-bearing:** with
+      multi-week gaps in the schedule the rig will be boxed, moved or knocked
+      between collection sessions, so drift goes from possible to likely.
+      Do it *before* Gate 2 collects anything.
 
 ### Deliberately not using
 
@@ -149,6 +159,13 @@ reason for not being now.
       system is finished and defensible**, when the comparison has a working
       baseline to compare against and the argument lands as "I built both"
       rather than "I hedged".
+- [ ] **LoRaWAN backhaul in embedded C++17 (was Satellite B).** Deferred
+      2026-09-26. An STM32WL55JC1 node carrying the occupancy result to the
+      RAK7268V2 over AU915, with the "pull the Ethernet cable and the data
+      keeps arriving" demo. Cut because the AU915 config is meant to be
+      lifted rather than re-derived, leaving C++ RAII over a vendor HAL as
+      the only real learning — the smallest delta over the C in
+      `../freertos-u585/`. Repo and notes kept in `../lorawan-occupancy/`.
 - [ ] Battery power and a real power-draw measurement. Mains vs battery is a
       genuine market distinction for occupancy sensors.
 - [ ] Multi-zone deployment: two or three nodes across a floor, aggregated in
@@ -156,5 +173,5 @@ reason for not being now.
       `vl53l5cx_set_i2c_address()` plus LPn control if two ever share a bus.
 - [ ] KiCad sensor shield — a 2-layer board carrying both breakouts on sockets
       with proper pull-ups and decoupling, no MCU. The roadmap gives this an
-      optional month-6 entry point, where a proven circuit gives it an honest
+      optional post-Gate-8 entry point, where a proven circuit gives it an honest
       reason to exist.

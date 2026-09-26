@@ -140,7 +140,7 @@ Do not add BACnet/gateway integration (Phase 5) before Phase 4 live inference is
 
 **AMG8833 (Grid-EYE thermal IR):**
 - Output: 64 temperature readings (°C) per frame, 8×8 grid, ~10 Hz max
-- I2C address: 0x68 (default) or 0x69 (AD0 pin high) — both sensors can share one I2C bus
+- I2C address: 0x68 (part default) or 0x69 (AD0 high). **The SparkFun breakout in this build answers at 0x69** — the drivers probe both rather than hard-coding one. Both sensors share one I2C bus.
 - Detects radiated heat regardless of motion — complements ToF for detecting still occupants
 - A pure Rust I2C driver is straightforward; no vendor C library needed
 
