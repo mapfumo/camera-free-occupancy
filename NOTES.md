@@ -419,6 +419,195 @@ is a plausible cause — soldered to protoboard the part has less room to dump
 heat than it had on jumpers in open air. Treat 44 °C as a lower bound, not a
 maximum, anywhere it is quoted.
 
+### Mount geometry, and a reflectance theory that did not survive — 2026-09-26
+
+A long bench session spent deciding where the sensor actually goes. Worth
+recording in full because most of it is reasoning that would otherwise be
+re-run from scratch, and because the headline hypothesis turned out to be
+wrong — which is the part most likely to be repeated if it is not written
+down.
+
+#### The mount
+
+Available gear: a Neewer desk-clamp stand with a boom, reaching **166 cm**
+maximum, and a 1 m tripod. Nothing that reaches a ceiling.
+
+Operator height is 180 cm, so **the sensor sits below head height**. That one
+fact decides the product. Overhead mounting is out: you cannot stand under a
+sensor at 166 cm, and from directly above, a seated head at ~130 cm is only
+36 cm away, where the ToF's field spans barely 33 cm. So this is a
+**wall-height, cross-room sensor**, not a ceiling one.
+
+That is not a consolation. A sensor that works at wall height installs
+anywhere; one that needs ceiling access does not — the same retrofit argument
+the roadmap makes about cabling applies to mounting.
+
+Orientations considered and rejected:
+
+- **Facing up.** Puts ceiling luminaires in the thermal field. They are hot,
+  large in a 60° field, and switch on and off *with occupancy* — precisely the
+  shortcut the VEML6030 was excluded to avoid, but hidden inside 64 thermal
+  pixels where it cannot be attributed. Also collects dust and sees desk
+  clutter. Rejected outright.
+- **Straight down.** Correct geometry in principle — no occlusion, floor as a
+  constant baseline, head height maps to distance, and it makes `sitting` vs
+  `standing` nearly free. Impossible at this height for the reason above.
+- **Tilted down, facing out.** What we settled on.
+
+#### Sensor arrangement — the thermal question answered itself
+
+Mounting the board in portrait for the tilt happens to put the **GridEYE below
+the SATEL**. The ToF's plume therefore rises away from the thermopile instead
+of across it, which is the arrangement the earlier TODO wanted and would
+otherwise have needed shield rework. Convection is no longer the concern;
+only conduction through the shared protoboard remains, which is a much weaker
+effect and still unmeasured.
+
+Rotating to portrait **voids the earlier orientation characterisation**. The
+hot-mug finding that a target "entered from the bottom-left" no longer holds,
+and the SATEL's grid orientation was never established at all. Both need
+redoing in the final pose. One provisional data point arrived for free: with a
+vertical target (A3 sheet held at chest height), **row 0 reads nearer than
+row 1**. On a flat vertical surface the closest point is the one level with the
+sensor and points below are farther, so **row 0 is the top of the world view**.
+Confirm with the mug before relying on it.
+
+#### What the ranging actually showed
+
+Empty room, final pose, typical frame:
+
+```
+ -1    -1    -1   1893  1743   -1    -1    -1
+ -1    -1   1940   -1    -1    -1    -1    -1
+ -1    -1   2298   -1    -1    -1    -1    -1
+ -1    -1    -1    -1    -1    -1    -1   856
+ -1   2034   -1    -1    -1    -1    -1   889
+1845  1909   -1    -1    -1    -1   1004  916
+1719  1778  1792  1276  1244   -1   1073  971
+1599  1652  1656  1198  1208  1208  1156  984
+```
+
+- **A persistent strip down column 7 at 0.85–0.98 m.** Static, one column wide,
+  nearest at the top — the signature of a flat surface at the frame edge. The
+  assembly is mounted hard against the door jamb; most likely that. Move the
+  boom clear of it.
+- **Only 24–26 of 64 zones valid.** Three-quarters of the array is pointed at
+  space beyond useful range.
+- An earlier pose over the desk produced 0.98 m returns across the bottom rows.
+  Useful invariant for diagnosing these: **from a sensor at height h, the slant
+  range to the floor can never be less than h.** Anything reading below 1.66 m
+  here is an object, not the floor.
+
+#### The reflectance test — hypothesis rejected
+
+A person standing ~2 m away (near the shoe rack) produced **no detectable
+change at all**: 22–25 valid zones against 24–26 empty, same pattern
+everywhere. An A3 white sheet in roughly the same area showed up clearly.
+Initial reading: the ToF cannot see dark clothing or dark skin at 940 nm,
+which would have been a strong argument for sensor fusion.
+
+**That reading was wrong.** Two confounds, found by making the test stricter:
+
+1. **Target size, not surface.** At 45° across 8 zones, each zone subtends
+   ~5.6°, so **one zone covers roughly 15 cm at 1.5 m**. A bare forearm
+   (~10 cm) underfills a single zone and returns weakly and intermittently.
+   The A3 sheet (30 × 42 cm) fills two to three zones completely. That alone
+   explains the difference with no reflectance effect whatsoever.
+2. **The spot moved between captures**, and a fluorescent light was switched
+   on partway through, changing ambient IR as well as the target.
+
+The size-matched, fixed-lighting repeat settles it. Same position, same pose,
+light off, A3 held flat against the chest and then dropped:
+
+| zone  | empty | paper on chest | person, no paper |
+|-------|-------|----------------|------------------|
+| r0 c3 | 1893  | 1478           | **1510**         |
+| r0 c4 | 1743  | 1403           | **1450**         |
+| r0 c5 | —     | —              | **1488**         |
+| r1 c3 | —     | 1663           | **1731**         |
+| r1 c4 | —     | 1617           | **1624**         |
+
+**The unaided person returns more zones than the paper, not fewer.** Grey
+clothing and dark skin are both perfectly adequate 940 nm targets. Melanin
+absorption falls off steeply above ~700 nm, so skin-tone variation in the near
+infrared is far smaller than in visible light — a genuine advantage of active
+NIR sensing over camera-based approaches, and worth stating in the write-up.
+Visible colour is in any case a poor predictor of NIR reflectance: carbon-black
+absorbs across both, while many dyes that look dark are bright at 940 nm.
+
+**Consequence: the earlier null was position, not surface.** At ~2 m the
+subject was outside the usable cone. And the fusion argument this looked like
+it was going to supply **does not exist** — do not write it up. If fusion needs
+justifying, it has to be on something real, most likely stationary occupants,
+where the thermopile sees what the ToF cannot.
+
+#### Confirmed problem: only two rows are usable
+
+Every person-height return, in every capture, landed in **rows 0–1**. Sixteen
+of sixty-four zones. The remainder is near floor, the door-jamb strip, and
+out-of-range space.
+
+Geometry says a person at 2 m spans ~44° from head to feet, almost exactly the
+sensor's 45° field — they should nearly fill the frame. Landing on the top two
+rows means the array is aimed far too steeply, at floor much closer in.
+**Aiming criterion: adjust the tilt until a person at working distance sits in
+the middle rows, not the top edge.** Training on 16 usable zones would sink
+Gate 3.
+
+#### Resolution ceiling
+
+Zone size is roughly **10% of range**. A 45 cm torso covers about 3 zones at
+1.5 m, 1.5 zones at 3 m, and a single zone at 4.5 m. Past ~3 m a person stops
+having a shape and becomes one pixel, so anything posture-based — which is
+what separates `sitting` from `standing` — has a hard ceiling around there.
+This argues for a deliberately close sensing zone and supports framing the
+product as **workstation occupancy** rather than room-scale coverage.
+
+#### Data quality note: a literal 0 mm reading
+
+One frame returned **0 mm** at r7 c0. Zero is physically meaningless — nothing
+is touching the cover glass. The driver is emitting 0 as a value rather than a
+sentinel, so unfiltered it would assert the exact opposite of the truth. This
+sharpens the open TODO on invalid-zone encoding: "invalid" is not one
+condition. Out-of-range, too-dark-to-return, and a spurious 0 are three
+different things and should not collapse into one number. Decide before any
+CSV is recorded.
+
+#### Lighting must be a controlled variable
+
+A fluorescent lamp was switched on mid-session and contaminated a comparison.
+Three reasons it matters:
+
+- The VL53L5CX supplies its own 940 nm illumination and works in darkness.
+  Ambient IR only adds shot noise and **reduces** effective range — switching a
+  light on to help it see works against you.
+- A lamp is a warm object for the GridEYE, and it is on when people are
+  present. Same shortcut family as the ceiling lights.
+- It changed between two captures that were being compared.
+
+**Rule for Gate 2: pick a lighting state and hold it for every capture, or
+record it per session and balance it across classes. Never let it track the
+class.** The photographic lamp on the stand is for filming — which means it is
+on exactly for the sessions that produce video ground truth. Same rule applies.
+
+#### Open
+
+- Reduce the tilt until people land in the middle rows; re-baseline the empty
+  room afterwards, since every number above is tied to the current pose.
+- Move the boom clear of the door jamb and confirm column 7 frees up.
+- **Measure usable depth:** walk out in half-metre steps and record where
+  detection is lost. Detection is solid at ~1.5 m and absent at ~2 m, but
+  whether that is the cone or the range is not yet known. That number decides
+  the size of the zone the product can honestly claim.
+- Redo the hot-mug orientation characterisation for both sensors in the final
+  pose, and confirm row 0 is the top.
+- Mark the ball head, clamp position and column extension. A long column with
+  an offset load on a ball joint, clamped to a desk people lean on, is the
+  geometry-drift risk in physical form.
+- The sunlit window is an uncontrolled thermal source: sunlit patches are warm,
+  move through the day, and correlate with time rather than occupancy. Collect
+  across times and weather; record as a known limitation.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

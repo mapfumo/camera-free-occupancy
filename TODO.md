@@ -14,19 +14,45 @@ Ordered by when it matters, not by size.
       2026-08-03 on the ElectroCookie proto shield: AMG8833 on a socket strip,
       SATEL along the edge, both coplanar and facing the same way. Photo in
       `../images/shield.jpg`.
-- [ ] **Re-verify the rig on hardware after the break.** Built on 2026-08-03
-      and not exercised since. Run `i2c_scan`, `tof_range`, `thermal_probe`
-      and the heatmap viewer against it before trusting any frame it produces.
-      Record the mounting height and angle in `NOTES.md` while doing it —
-      that is the geometry the whole dataset inherits.
-- [ ] **Confirm the thermal gap is sufficient.** The gap exists on the shield,
-      but it was chosen by eye and never tested. Measured, not theoretical:
-      the VL53L5CX climbed from 34 °C to 44 °C over a few minutes of ranging.
-      Run the ToF continuously for ten minutes and watch whether the AMG8833
-      grows a fixed bright corner. If it does, that corner appears in every
-      class identically, quietly eating dynamic range instead of failing
-      visibly — and it is far cheaper to find now than after a dataset exists.
-      Thermal sensor upstream in any airflow.
+- [x] ~~Re-verify the rig on hardware after the break.~~ Done 2026-09-26.
+      Rust 1.92, probe-rs 0.30, same ST-LINK serial; `i2c_scan`, `tof_range`
+      and `thermal_probe` all good. AMG8833 is at 0x69, not 0x68 — expected
+      (SparkFun straps AD0 high), but four documents said otherwise and are
+      now fixed.
+- [ ] **Use the heatmap viewer, not the RTT text dump.** Still the one tool
+      built for this that has never been used in anger. Every aiming decision
+      on 2026-09-26 was made by reading 8x8 integer grids in a terminal, which
+      is exactly the slow path it was written to replace.
+- [ ] **Check the thermal gap — convection half is already solved.**
+      Mounting the board in portrait for the tilt puts the GridEYE *below* the
+      SATEL, so the ToF's plume rises away from it rather than across it. That
+      was the risky mechanism and it is gone for free. What remains is
+      conduction through the shared protoboard, which is orientation-
+      independent and much weaker. Still worth one soak: run the ToF for ten
+      minutes in the final pose and check the GridEYE does not grow a fixed
+      warm region. Note the part runs hotter than recorded — 42 °C within five
+      frames, 51 °C at eight minutes and still climbing, so August's 44 °C was
+      a short measurement, not a plateau.
+- [ ] **Fix the tilt — people land in rows 0-1 only.** Every person-height
+      return in every capture on 2026-09-26 landed in the top two rows: 16 of
+      64 zones usable, the rest floor, door jamb and out-of-range space.
+      Geometry says a person at 2 m spans ~44°, almost the full 45° field, so
+      they should nearly fill the frame. Reduce the tilt until a person at
+      working distance sits in the *middle* rows, then re-baseline the empty
+      room — every number in NOTES is tied to the current pose.
+- [ ] **Move the boom clear of the door jamb.** A static strip at 0.85-0.98 m
+      runs down column 7 in every frame. Confirm it frees up.
+- [ ] **Measure usable depth.** Detection is solid at ~1.5 m and absent at
+      ~2 m, but whether that is the cone or the range is unknown. Walk out in
+      half-metre steps and record where it is lost. That number decides how
+      big a zone the product can honestly claim.
+- [ ] **Redo the orientation characterisation for both sensors.** The board is
+      portrait now; the hot-mug "entered from the bottom-left" finding is void
+      and the SATEL's grid orientation was never established. Provisional
+      evidence says row 0 is the top of the world view — confirm it.
+- [ ] **Mark the ball head, clamp position and column extension.** A long
+      column with an offset load on a ball joint, clamped to a desk people
+      lean on, is the geometry-drift risk in physical form.
 - [ ] **Combined stream — both grids, one output.** Deliberately *after* the
       rig: what this captures is Phase 2's dataset, and the geometry it records
       should be the final one. Building it against jumpers means recording a
@@ -44,6 +70,20 @@ Ordered by when it matters, not by size.
       leaves still contain them, so back-to-back sessions would put the warm
       ghost of `sitting` into the `empty` set. Decide a settling period and
       write it into the collection procedure.
+- [ ] **Hold lighting constant across every capture.** A fluorescent lamp
+      switched on mid-session contaminated a comparison on 2026-09-26. The
+      VL53L5CX supplies its own 940 nm illumination and works in darkness —
+      ambient IR only adds shot noise and *reduces* range, so switching a
+      light on to help it see works against you. A lamp is also a warm object
+      for the GridEYE that is on when people are present: the same shortcut
+      the VEML6030 was excluded to avoid. Pick a state and hold it, or record
+      it per session and balance it across classes — never let it track the
+      class. The photographic lamp is on exactly for the sessions that produce
+      video ground truth, so the rule applies there too.
+- [ ] **Sunlight is an uncontrolled thermal source.** Sunlit patches are warm,
+      drift through the day, and correlate with time rather than occupancy.
+      Collect across different times and weather; record as a known
+      limitation.
 - [ ] **Decide whether thermal persistence is a feature.** A recently vacated
       chair stays warm, which genuinely separates "occupied a minute ago" from
       "empty all morning". Worth exploiting deliberately — but only
@@ -54,6 +94,11 @@ Ordered by when it matters, not by size.
       observation about the room, not missing data, and encoding it as 0 mm
       asserts the exact opposite ("something is touching the sensor"). Decide
       before training, not after the confusion matrix disappoints.
+      **Sharpened 2026-09-26:** a frame returned a literal `0` mm at r7 c0, so
+      the driver already emits 0 as a value rather than a sentinel. "Invalid"
+      is not one condition either — out-of-range, too-dark-to-return, and a
+      spurious 0 are three different things and must not collapse into one
+      number. Dark carpet makes the second case common here.
 - [ ] **Retune the thermal display bands for room distance.** Current bands
       were chosen for a desk test. A clothed person at 2–3 m may sit only 1–2 °C
       above background — the same order as the sensor's noise floor. Does not
@@ -68,9 +113,10 @@ Ordered by when it matters, not by size.
       aiming — maximum contrast on whatever is in view — but it makes colours
       incomparable between frames, which is the wrong default once frames are
       being compared rather than aimed.
-- [ ] Video ground truth setup — phone on a tripod, visible clock, time-synced
-      to the frame log. **Not** the B-CAMS-OMV; the job needs a camera and a
-      clock, not a camera pipeline on the U585.
+- [ ] Video ground truth — **use the webcam already on top of the monitor.**
+      It is aimed at the chair, host-timestamped, and needs no rigging, so it
+      replaces the phone-on-a-tripod plan. **Not** the B-CAMS-OMV; the job
+      needs a camera and a clock, not a camera pipeline on the U585.
 
 ## Use the board's own sensors
 
