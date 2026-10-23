@@ -234,12 +234,26 @@ Suggested structure (matches your existing blog voice):
 
 ## Timeline
 
-Superseded by `SIX_MONTH_ROADMAP.md`, which schedules these phases across
-2026-08-01 → 2027-02-01 alongside the FreeRTOS, KiCad, and C++ work. This
-project is the flagship of that roadmap, not a standalone 7-week sprint.
+Scheduled by `../plan/SIX_MONTH_ROADMAP.md`, which orders these phases as
+gates alongside the FreeRTOS satellite. Dates live **only** in that file's
+Estimates table, so there is one place for them to be wrong. This project is
+the flagship of that roadmap, not a standalone 7-week sprint.
 
-| Month | Phases here |
-|-------|-------------|
+| Phase here | Roadmap gate |
+|------------|--------------|
+| 1 — Hardware bring-up | Gate 1 |
+| 2 — Data collection | Gate 2 |
+| 3 — Model | Gate 3 |
+| 4 — Firmware integration | Gate 4 |
+| 5 — Gateway & dashboard | Gate 5 |
+| 6 — Real-world validation | Gate 7 (runs before Gate 6 — one U585 board) |
+| 7 — Write-up | Gate 8 |
+
+Gate 6 is the FreeRTOS comparison and has no phase here. The per-phase effort
+estimates above still hold as focused effort; the roadmap roughly doubles
+them to pay for documentation, video and first-time tooling.
+
+-------|-------------|
 | 1 — Aug 2026 | Phase 1 (bring-up) + Phase 2 (data collection) |
 | 2 — Sep 2026 | Phase 3 (model) + Phase 4 (live inference) |
 | 3 — Oct 2026 | Phase 5 (gateway/dashboard) |
