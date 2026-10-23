@@ -23,5 +23,5 @@ SOFTWARE.
 ---
 
 This license does not cover firmware/vendor/vl53l5cx/, which is the
-VL53L5CX Ultra Lite Driver, Copyright (c) STMicroelectronics, distributed
-under STMicroelectronics' own license terms.
+VL53L5CX Ultra Lite Driver, Copyright (c) 2021 STMicroelectronics, licensed
+under BSD-3-Clause. See firmware/vendor/vl53l5cx/LICENSE.txt.
