@@ -165,5 +165,5 @@ Write-ups will appear at [mapfumo.net](https://www.mapfumo.net).
 
 ## License
 
-Not yet chosen. `firmware/vendor/vl53l5cx/` is ST's VL53L5CX Ultra Lite
-Driver, © STMicroelectronics, under ST's own terms.
+[MIT](LICENSE), except `firmware/vendor/vl53l5cx/`, which is ST's VL53L5CX
+Ultra Lite Driver, © STMicroelectronics, under ST's own terms.
