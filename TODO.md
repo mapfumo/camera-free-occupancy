@@ -58,11 +58,34 @@ Ordered by when it matters, not by size.
       opposed views of the same scene. Recoverable by a dense net at the cost
       of capacity; actively wrong for anything convolutional. Settle it before
       recording a single frame.
-- [ ] **Flip the rows in the driver, not the viewer.** Everything watched on
-      2026-09-26 rendered with the floor at the top. Fix it in one place so
-      the CSV, the model input and the live display all agree with the world.
-      Flipping only the viewer leaves recorded data disagreeing with what was
-      watched while recording it.
+      **Procedure** (world frame and mechanism in
+      `firmware/src/orientation.rs`). Run `tof_range` into the heatmap viewer,
+      stand *behind* the sensor's line of sight to judge left/right, and move
+      the target one way at a time against open background at ~1.2 m:
+      1. Raise the target. If the blob moves along a **row** rather than a
+         column, set `transpose: true` and redo steps 2–3 after reflashing.
+      2. Raised target heads toward screen **bottom** → `flip_rows: true`.
+      3. Target moved to *your* left (seen from behind) heads toward screen
+         **right** → `flip_cols: true`.
+      4. Set the fields in `vl53l5cx::ORIENTATION`, reflash, confirm the
+         blob now moves with the target, and delete the UNVERIFIED note.
+      5. Run `thermal_probe` with the same target: both blobs should land on
+         the same cells. That is the registration check.
+      For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
+      the scene's top right); how the breakout is mounted decides the rest.
+- [~] **Flip the rows in the driver, not the viewer.** Mechanism in place
+      2026-11-22: `orientation.rs`, applied in `Amg8833::read_frame` and in
+      `tof_range` (distance and status together). AMG8833 set to
+      `flip_rows` — **reflash and confirm the floor is now at the bottom of
+      the viewer.** ToF still identity pending the procedure above.
+      `firmware/session.csv` (2026-08-02) is in the old raw order and the
+      old landscape pose; don't train on it.
+- [ ] **Look into today's hardware check (2026-11-22).** Both sensors found
+      and streaming after the break. Two loose ends: (1) the empty scene now
+      gives only 5-8 valid ToF zones against 38-42 in September, so check
+      whether the rig has moved; (2) one `tof_range` start failed
+      `is_alive`, while a rescan straight after found 0x29 fine. Suspect
+      a loose jumper; press on the SATEL wires while rescanning if it recurs.
 - [ ] **Build a dual-modality target.** A hot water bottle taped behind a
       piece of card: a flat surface at a known distance for the ToF and a
       large warm area for the thermal, in the same place at the same instant.

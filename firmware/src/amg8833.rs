@@ -40,8 +40,22 @@
 use embassy_stm32::i2c::{Error as I2cError, I2c, Master};
 use embassy_stm32::mode::Blocking;
 
+use crate::orientation::Orientation;
+
 /// Number of pixels in the array.
 pub const PIXELS: usize = 64;
+
+/// How this rig's Grid-EYE maps onto the world frame (see [`orientation`]).
+///
+/// Established on hardware 2026-09-26 with a boiling-water mug, in the final
+/// portrait pose: horizontally normal, vertically inverted — raw row 0 is the
+/// *bottom* of the view. See NOTES.md, "AMG8833 orientation map — resolved".
+///
+/// Tied to the physical mount. Re-establish it if the breakout is ever
+/// re-seated or the board rotated.
+///
+/// [`orientation`]: crate::orientation
+pub const ORIENTATION: Orientation = Orientation { transpose: false, flip_rows: true, flip_cols: false };
 
 /// I2C address with the AD_SELECT pin low — the SparkFun board's default.
 pub const DEFAULT_ADDRESS: u8 = 0x68;
@@ -133,10 +147,13 @@ impl Amg8833 {
         Ok(())
     }
 
-    /// Read all 64 pixels, in centidegrees Celsius.
+    /// Read all 64 pixels, in centidegrees Celsius, in the **world frame**.
     ///
-    /// Index `row * 8 + col`, matching the VL53L5CX's zone ordering so the two
-    /// grids can be concatenated without either one being transposed.
+    /// Index `row * 8 + col` with row 0 at the top of the view and column 0 on
+    /// the left, seen from behind the sensor — the same frame the VL53L5CX
+    /// output is put into, so the two grids concatenate cell for cell. The
+    /// sensor's raw order is corrected here, via [`ORIENTATION`], so nothing
+    /// downstream ever sees it.
     ///
     /// The whole array is read in a single transaction. The sensor has no
     /// mechanism to latch a frame, so a read that straddles an internal update
@@ -149,12 +166,14 @@ impl Amg8833 {
         let mut raw = [0u8; PIXELS * 2];
         bus.blocking_write_read(self.address, &[REG_PIXEL_BASE], &mut raw)?;
 
-        for (pixel, bytes) in out.iter_mut().zip(raw.chunks_exact(2)) {
+        let mut sensor_order = [0i16; PIXELS];
+        for (pixel, bytes) in sensor_order.iter_mut().zip(raw.chunks_exact(2)) {
             // Little-endian: the low byte sits at the lower register address.
             let word = u16::from_le_bytes([bytes[0], bytes[1]]);
             *pixel = quarter_degrees_to_centi(twelve_bit_twos_complement(word));
         }
 
+        *out = ORIENTATION.apply(&sensor_order);
         Ok(())
     }
 

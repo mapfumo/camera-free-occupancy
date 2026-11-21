@@ -40,6 +40,7 @@ use coworkos_firmware::vl53l5cx::bindings::{
     vl53l5cx_start_ranging,
 };
 use coworkos_firmware::vl53l5cx::platform::BusContext;
+use coworkos_firmware::vl53l5cx::ORIENTATION;
 
 const DEFAULT_ADDRESS_8BIT: u16 = 0x52;
 
@@ -136,6 +137,11 @@ async fn main(_spawner: Spawner) {
 
         frame = frame.wrapping_add(1);
 
+        // Into the world frame before anything reads a zone. Both arrays, or
+        // a zone's distance ends up judged by a different zone's status.
+        let distance_mm = ORIENTATION.apply(&results.distance_mm);
+        let target_status = ORIENTATION.apply(&results.target_status);
+
         // Print every fifth frame: 10 Hz of 8-line grids is unreadable, and
         // 2 Hz is about the fastest a person can actually follow.
         if frame % 5 != 0 {
@@ -148,9 +154,9 @@ async fn main(_spawner: Spawner) {
         let mut max = i32::MIN;
         let mut valid = 0u32;
         for zone in 0..64usize {
-            let status = results.target_status[zone];
+            let status = target_status[zone];
             if status == STATUS_VALID || status == STATUS_VALID_WEAK {
-                let d = results.distance_mm[zone] as i32;
+                let d = distance_mm[zone] as i32;
                 min = min.min(d);
                 max = max.max(d);
                 valid += 1;
@@ -172,11 +178,11 @@ async fn main(_spawner: Spawner) {
 
             for col in 0..8usize {
                 let zone = row * 8 + col;
-                let status = results.target_status[zone];
+                let status = target_status[zone];
                 let valid_zone = status == STATUS_VALID || status == STATUS_VALID_WEAK;
 
                 cells[col] = if valid_zone {
-                    results.distance_mm[zone] as i32
+                    distance_mm[zone] as i32
                 } else {
                     -1
                 };
