@@ -148,8 +148,8 @@ FFI and ranging live; the AMG8833 driver in safe Rust; both sensors on a rigid
 rig at a derived 15° tilt; the host-side viewer and CSV recorder.
 
 **Next:** establish the ToF grid orientation and check it registers against
-the thermal grid (the thermal array is vertically inverted, so the two may be
-mirror images), then stream both grids together and tag `phase1-bringup`.
+the thermal grid (the thermal array's orientation is now confirmed), then
+stream both grids together and tag `phase1-bringup`.
 The working list is [`TODO.md`](TODO.md).
 
 ## Documentation

@@ -802,6 +802,10 @@ positions or the mapping will be ambiguous where it most needs to be sharp.
 
 ### AMG8833 orientation map — resolved, 2026-09-26
 
+> **Superseded 2026-11-22: the vertical conclusion below is wrong.** A live
+> sweep in the viewer shows raw row 0 is the *top* of the view. See "AMG8833
+> orientation — corrected" further down. The horizontal finding stands.
+
 Resolves the ambiguity left open in the previous section. Established by
 moving a boiling-water mug to known positions and, for the direction
 questions, by sweeping it live in `tools/heatmap_viewer.py` — which answered
@@ -908,6 +912,43 @@ the place". Two causes, both fixable:
   `--fixed-scale` item already in TODO: auto-scaling is right for aiming at a
   single target and wrong the moment frames are being compared. This session
   is the argument for implementing it.
+
+### AMG8833 orientation — corrected, 2026-11-22
+
+The driver-level orientation correction went in today (`orientation.rs`),
+with the AMG8833 set to `flip_rows` per the September finding. Checked live in
+`tools/heatmap_viewer.py` with a warm target: **raising the target moved the
+blob down the screen.** With the flip removed, up is up and left is left.
+
+> **The AMG8833's raw grid is already in the world frame: row 0 at the top,
+> column 0 on your left, seen from behind the sensor. `ORIENTATION` is
+> identity.**
+
+So September's "vertically inverted" was wrong, and "everything watched today
+was upside down" was not true either.
+
+**Why the remount doesn't explain it.** The board was remounted on the stand
+this morning, which looks like an easy explanation, but no remount can produce
+this result. Moving a rigid board only rotates its grid: a half turn
+reverses both axes, a quarter turn swaps rows for columns. A change in **one
+axis only** is a mirror image, and no physical motion makes one. Horizontal
+was re-checked today and still agrees with September, so the board was not
+turned, and the September vertical reading was in error. Likeliest cause: the
+two-position mug capture (r2 → r4) was made with a cooling mug at the drift
+floor, and the "live sweep" that confirmed it may have read the direction
+against whatever the screen showed rather than against row indices.
+
+**What the remount does explain:** the drop to 5-8 valid ToF zones on an empty
+scene this morning, and it voids September's ~20° mount-angle measurement.
+Both need redoing in the new pose.
+
+**Lessons.**
+- Verify a correction *through the correction*. The flip was only shown to be
+  wrong because it was checked on screen after being applied, not assumed.
+- A one-axis change between sessions is a measurement error, not a moved rig.
+  Rigid-body motion can only produce rotations — use that as a sanity check.
+- The ToF's only evidence also says row 0 is the top, so the feared
+  mirror-image registration problem may not exist. Still unconfirmed.
 
 ## Vendor driver
 

@@ -47,15 +47,18 @@ pub const PIXELS: usize = 64;
 
 /// How this rig's Grid-EYE maps onto the world frame (see [`orientation`]).
 ///
-/// Established on hardware 2026-09-26 with a boiling-water mug, in the final
-/// portrait pose: horizontally normal, vertically inverted — raw row 0 is the
-/// *bottom* of the view. See NOTES.md, "AMG8833 orientation map — resolved".
+/// Vertical re-established on hardware 2026-11-22 by sweeping a warm target in
+/// the heatmap viewer: with `flip_rows` set, raising the target moved the blob
+/// *down*, so raw row 0 is already the top of the view and no row flip is
+/// needed. Horizontal confirmed normal in the same sweep. The raw grid is
+/// therefore already the world frame. This corrects the 2026-09-26 finding
+/// (raw row 0 = bottom) — see NOTES.md, "AMG8833 orientation — corrected".
 ///
 /// Tied to the physical mount. Re-establish it if the breakout is ever
 /// re-seated or the board rotated.
 ///
 /// [`orientation`]: crate::orientation
-pub const ORIENTATION: Orientation = Orientation { transpose: false, flip_rows: true, flip_cols: false };
+pub const ORIENTATION: Orientation = Orientation { transpose: false, flip_rows: false, flip_cols: false };
 
 /// I2C address with the AD_SELECT pin low — the SparkFun board's default.
 pub const DEFAULT_ADDRESS: u8 = 0x68;

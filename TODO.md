@@ -46,18 +46,19 @@ Ordered by when it matters, not by size.
       ~2 m, but whether that is the cone or the range is unknown. Walk out in
       half-metre steps and record where it is lost. That number decides how
       big a zone the product can honestly claim.
-- [x] ~~Orientation characterisation, AMG8833.~~ Done 2026-09-26. **Behind
-      the sensor looking out: column 0 on your left, column 7 on your right;
-      row 0 at the bottom of the view, row 7 at the top.** Horizontally
-      normal, vertically inverted.
-- [ ] **START HERE TOMORROW — establish the ToF orientation and check
-      registration.** The AMG is vertically inverted. The only ToF evidence
-      (A3 against the chest, r0 nearer than r1) says its row 0 is the *top* —
-      the opposite. If that holds, the two grids are mirror images and Gate 3
-      concatenates them into one 128-value vector, which hands the model two
-      opposed views of the same scene. Recoverable by a dense net at the cost
-      of capacity; actively wrong for anything convolutional. Settle it before
-      recording a single frame.
+- [x] ~~Orientation characterisation, AMG8833.~~ **Corrected 2026-11-22:
+      the raw grid is already in the world frame** — row 0 at the top, column
+      0 on your left, seen from behind. Verified by a live sweep in the viewer,
+      both axes. September's "vertically inverted" was wrong; see NOTES,
+      "AMG8833 orientation — corrected".
+- [ ] **START HERE — establish the ToF orientation and check
+      registration.** The AMG is now settled as identity. The only ToF
+      evidence (A3 against the chest, r0 nearer than r1) says its row 0 is
+      the *top* too — so the mirror-image worry may be gone, but that is one
+      unconfirmed data point from before this morning's remount. If the grids
+      did disagree, Gate 3 would concatenate two opposed views of the scene:
+      recoverable by a dense net at the cost of capacity, actively wrong for
+      anything convolutional. Settle it before recording a single frame.
       **Procedure** (world frame and mechanism in
       `firmware/src/orientation.rs`). Run `tof_range` into the heatmap viewer,
       stand *behind* the sensor's line of sight to judge left/right, and move
@@ -73,17 +74,17 @@ Ordered by when it matters, not by size.
          the same cells. That is the registration check.
       For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
       the scene's top right); how the breakout is mounted decides the rest.
-- [~] **Flip the rows in the driver, not the viewer.** Mechanism in place
-      2026-11-22: `orientation.rs`, applied in `Amg8833::read_frame` and in
-      `tof_range` (distance and status together). AMG8833 set to
-      `flip_rows` — **reflash and confirm the floor is now at the bottom of
-      the viewer.** ToF still identity pending the procedure above.
-      `firmware/session.csv` (2026-08-02) is in the old raw order and the
-      old landscape pose; don't train on it.
+- [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in
+      place 2026-11-22: `orientation.rs`, applied in `Amg8833::read_frame`
+      and in `tof_range` (distance and status together). AMG8833 confirmed
+      identity on hardware the same day; ToF still identity pending the
+      procedure above. `firmware/session.csv` (2026-08-02) was recorded in
+      the old landscape pose; don't train on it.
 - [ ] **Look into today's hardware check (2026-11-22).** Both sensors found
       and streaming after the break. Two loose ends: (1) the empty scene now
-      gives only 5-8 valid ToF zones against 38-42 in September, so check
-      whether the rig has moved; (2) one `tof_range` start failed
+      gives only 5-8 valid ToF zones against 38-42 in September — the board
+      was remounted on the stand that morning, so the aim has changed;
+      re-check tilt and near-field clutter before reading anything into it; (2) one `tof_range` start failed
       `is_alive`, while a rescan straight after found 0x29 fine. Suspect
       a loose jumper; press on the SATEL wires while rescanning if it recurs.
 - [ ] **Build a dual-modality target.** A hot water bottle taped behind a
