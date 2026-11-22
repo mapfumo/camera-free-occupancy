@@ -1,6 +1,9 @@
 target/
 .claude/settings.local.json
 
+# Sessions are committed compressed only — see sessions/README.md
+sessions/*.csv
+
 # Python
 __pycache__/
 *.pyc

@@ -69,7 +69,7 @@ import csv
 import re
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+import time
 from typing import Iterator, Optional, TextIO
 
 GRID = 8
@@ -566,19 +566,23 @@ class CsvRecorder:
         self._writer = csv.writer(self._handle)
         self._label = label
         self._count = 0
+        # Seconds since recording started, never wall-clock time: sessions
+        # are published, and absolute times would publish the routine of
+        # whoever sits at the desk. Order and spacing are all training needs.
+        self._t0 = time.monotonic()
 
         # Only write a header to a new or empty file, so repeated sessions can
         # append to one file without interleaving headers into the data.
         if self._handle.tell() == 0:
             self._writer.writerow(
-                ["timestamp", "sensor", "label", "frame"]
+                ["host_s", "sensor", "label", "frame"]
                 + [f"p{i:02d}" for i in range(PIXELS)]
             )
 
     def write(self, frame: Frame) -> None:
         self._writer.writerow(
             [
-                datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+                f"{time.monotonic() - self._t0:.3f}",
                 frame.sensor,
                 self._label,
                 frame.number,
@@ -601,7 +605,7 @@ class CsvRecorder:
 class FusedCsvRecorder:
     """Append paired frames to a CSV, one row per pair -- the Phase 2 format.
 
-    Layout: ``timestamp, label, frame, device_ms, die_cC, tilt_deg,
+    Layout: ``host_s, label, frame, device_ms, die_cC, tilt_deg,
     roll_deg``, then
     ``d00..d63`` (raw ToF distance, mm), ``s00..s63`` (ULD target_status) and
     ``h00..h63`` (temperature, centidegrees C). All three grids row-major in
@@ -615,7 +619,7 @@ class FusedCsvRecorder:
     """
 
     HEADER = (
-        ["timestamp", "label", "frame", "device_ms", "die_cC", "tilt_deg", "roll_deg"]
+        ["host_s", "label", "frame", "device_ms", "die_cC", "tilt_deg", "roll_deg"]
         + [f"d{i:02d}" for i in range(PIXELS)]
         + [f"s{i:02d}" for i in range(PIXELS)]
         + [f"h{i:02d}" for i in range(PIXELS)]
@@ -638,13 +642,17 @@ class FusedCsvRecorder:
         self._writer = csv.writer(self._handle)
         self._label = label
         self._count = 0
+        # Seconds since recording started, never wall-clock time: sessions
+        # are published, and absolute times would publish the routine of
+        # whoever sits at the desk. Order and spacing are all training needs.
+        self._t0 = time.monotonic()
         if first is None:
             self._writer.writerow(self.HEADER)
 
     def write(self, fused: FusedFrame) -> None:
         self._writer.writerow(
             [
-                datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+                f"{time.monotonic() - self._t0:.3f}",
                 self._label,
                 fused.number,
                 "" if fused.device_ms is None else fused.device_ms,

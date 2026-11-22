@@ -16,9 +16,10 @@ standing head is out of frame (2026-11-22, "Class set narrowed").
 
 ## Labels
 
-`--label <class>/<chair>`. The class is always the part before the slash;
-the part after records where the chair was, so chair placement can be
-checked for later instead of guessed at.
+`--label <class>/<chair>/<daypart>`. The class is always the part before
+the first slash. The chair state records where the chair was, so its effect
+can be checked for later instead of guessed at; the daypart (`am`, `pm`,
+`eve`) lets the time-of-day spread be checked without storing clock times.
 
 | Chair | Meaning |
 |-------|---------|
@@ -28,7 +29,8 @@ checked for later instead of guessed at.
 | `turned` | On the spot but swivelled ~45° |
 | `away` | Out of view entirely |
 
-Examples: `empty/marked`, `empty/out`, `seated/marked`, `present/away`.
+Examples: `empty/marked/am`, `empty/out/pm`, `seated/marked/pm`,
+`present/away/eve`.
 
 ## Before every session
 
@@ -52,12 +54,18 @@ Examples: `empty/marked`, `empty/out`, `seated/marked`, `present/away`.
 ```bash
 cd firmware
 cargo run --release --bin fused_stream \
-  | python3 ../tools/heatmap_viewer.py --record ../sessions/2026-11-23_0930_empty-out.csv \
-      --label empty/out
+  | python3 ../tools/heatmap_viewer.py --record ../sessions/2026-11-23_01_empty-out.csv \
+      --label empty/out/am
+gzip ../sessions/2026-11-23_01_empty-out.csv     # after the session
 ```
 
-- **One CSV per session.** Name it `YYYY-MM-DD_HHMM_<class>-<chair>.csv`.
-  The recorder refuses to append to a file with a different column layout.
+- **One CSV per session.** Name it `YYYY-MM-DD_NN_<class>-<chair>.csv` —
+  date and that day's session number, no clock time. Gzip it when the
+  session ends; git only accepts the `.csv.gz`. Columns are documented in
+  [`sessions/README.md`](sessions/README.md).
+- The recorder refuses to append to a file with a different column layout,
+  and stores only seconds since the session started — never wall-clock
+  time, since the dataset is published.
 - **1–2 minutes per session** (300–600 frames at 5 Hz). Many short
   sessions across days beat one long one.
 - **Start, then get into position.** Discard the first ~15 s when training:
