@@ -213,17 +213,13 @@ are where its rules came from.
       chair stays warm, which genuinely separates "occupied a minute ago" from
       "empty all morning". Worth exploiting deliberately — but only
       deliberately, never as an accident in the training data.
-- [ ] **Decide what an invalid ToF zone means as model input.** Valid-zone
-      count swings 0/64 to 64/64 with no fault — a zone reports nothing when
-      nothing is in range, which at room scale is constant. This is a real
-      observation about the room, not missing data, and encoding it as 0 mm
-      asserts the exact opposite ("something is touching the sensor"). Decide
-      before training, not after the confusion matrix disappoints.
-      **Sharpened 2026-09-26:** a frame returned a literal `0` mm at r7 c0, so
-      the driver already emits 0 as a value rather than a sentinel. "Invalid"
-      is not one condition either — out-of-range, too-dark-to-return, and a
-      spurious 0 are three different things and must not collapse into one
-      number. Dark carpet makes the second case common here.
+- [x] ~~Decide what an invalid ToF zone means as model input.~~
+      **Decided 2026-11-23:** two ToF channels — a valid mask (status 5
+      or 9 *and* distance > 0) and distance clipped to 2 m with invalid
+      zones filled as far — plus the thermal excess: a 3×8×8 input. The
+      0 mm readings turned out to be a class-correlated artifact in one
+      corner zone. Rule lives in `tools/encode.py`; reasons in NOTES,
+      "Invalid ToF zones: the encoding".
 - [ ] **Retune the thermal display bands for room distance.** Current bands
       were chosen for a desk test. A clothed person at 2–3 m may sit only 1–2 °C
       above background — the same order as the sensor's noise floor. Does not

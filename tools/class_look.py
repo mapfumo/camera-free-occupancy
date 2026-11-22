@@ -59,7 +59,7 @@ for path in sorted(glob.glob(os.path.join(SESS, "*.csv.gz"))):
     d = np.array([[int(r[f"d{i:02d}"]) for i in range(64)] for r in rows], float)
     s = np.array([[int(r[f"s{i:02d}"]) for i in range(64)] for r in rows])
     h = np.array([[int(r[f"h{i:02d}"]) for i in range(64)] for r in rows], float) / 100
-    valid = np.isin(s, (5, 9))
+    valid = np.isin(s, (5, 9)) & (d > 0)  # same rule as tools/encode.py
     excess = h - np.median(h, axis=1, keepdims=True)
     near = (valid & (d < 620)).sum(1)
     hot = (excess > 1.5).sum(1)

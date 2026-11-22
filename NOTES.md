@@ -1464,3 +1464,48 @@ dropout per sensor. (2) Session 09 lost the ST-LINK at 144 s — kernel USB
 `error -71`, re-enumerated a second later — almost certainly the cable
 tugged while reaching across the desk. 652 good frames kept. Both in TODO
 for Phase 6, where nobody is there to retry.
+
+### Invalid ToF zones: the encoding — 2026-11-23
+
+Decided from all 34 sessions (27,383 labelled frames), before training as
+the roadmap requires. What "invalid" looks like in the data:
+
+| status | share of zones | what the distance is |
+|--------|---------------:|----------------------|
+| 5 valid | 62.7% | real; frame-to-frame jitter median 9 mm |
+| 9 valid, merged pulse | 0.9% | real |
+| 255 no target | 29.3% | **not a measurement** — 85% of the time a repeat of the previous frame's value |
+| 10 valid now, none last frame | 5.8% | roughly right but noisy (jitter 32 mm); mostly the far wall, 1.3% under 620 mm |
+| 4 consistency failed | 1.2% | unreliable — 10% of readings are off by more than 630 mm |
+| others | <0.2% | — |
+
+**The "spurious 0 mm" is a class-correlated artifact.** 1,070 readings are
+status 5 with 0 mm; 1,000 are in one zone, row 7 column 7 (bottom right,
+the pole side), and 1,018 are in `empty` sessions, mostly the afternoon of
+2026-11-22. Taken at face value it says "something touching the sensor,
+only when the room is empty" — a shortcut handed to the model. A zero is
+invalid whatever its status.
+
+**The encoding** (`tools/encode.py`, the only place the rule lives): each
+frame is a 3×8×8 float32 array.
+
+1. **ToF valid mask** — 1 if status ∈ {5, 9} and distance > 0, else 0.
+2. **ToF distance** — valid distance clipped to 2000 mm, scaled 0–1;
+   invalid zones filled with **1.0 (far)**. Smaller always means nearer,
+   and "nothing came back" never reads as "something at the glass".
+3. **Thermal** — each zone's °C above the frame median, as before.
+
+Why two ToF channels: "no return" is real information here — the empty
+black chair back returns nothing and a seated person in front of it
+returns ~0.5 m, so dropping or zero-filling invalid zones would erase the
+main ToF `seated` signal. The far fill makes the distance channel usable on
+its own; the mask lets the model tell a measured far wall from nothing at
+all (the evening's far-wall returns vs the dark chair back). 64 extra
+inputs is nothing for this model size.
+
+Rejected: raw distance with 0 fill (asserts the opposite of the truth);
+one channel with far fill (loses measured-far vs no-return); splitting
+"too dark" from "out of range" (the sensor reports both as 255). Status 10
+is left out: it is the far wall coming and going, not people, and the mask
+shows that flicker to the model rather than hiding it. `class_look.py` now
+uses the same validity rule.
