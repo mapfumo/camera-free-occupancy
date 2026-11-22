@@ -95,6 +95,13 @@ Ordered by when it matters, not by size.
       re-check tilt and near-field clutter before reading anything into it; (2) one `tof_range` start failed
       `is_alive`, while a rescan straight after found 0x29 fine. Suspect
       a loose jumper; press on the SATEL wires while rescanning if it recurs.
+      **Recurred 2026-11-23, other sensor:** the first attempt at morning
+      session 07 (seated, leaning in to the desk) stopped at start with
+      `no AMG8833 at 0x68 or 0x69`; `i2c_scan` straight after found both
+      0x29 and 0x69, and the retry ran clean. Two start-up dropouts, one per
+      sensor, both gone on retry: suspect the shared SCL/SDA jumpers or a
+      breadboard contact rather than either breakout. Reseat before the
+      Phase 6 multi-day run, where nobody is there to retry.
 - [ ] **Build a dual-modality target.** A hot water bottle taped behind a
       piece of card: a flat surface at a known distance for the ToF and a
       large warm area for the thermal, in the same place at the same instant.
