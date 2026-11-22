@@ -78,13 +78,14 @@ Ordered by when it matters, not by size.
       sensors put it in the high columns. Never let the holder's body sit on
       the opposite side of the target — it is the strongest thermal source in
       the room and will "agree" with a wrong flip.
-- [ ] **NEW — the ToF can't see a seated subject in the current pose.**
-      Seated vs empty differs only by the armrest; where the thermal sees
-      the person the ToF reads the chair and armchair behind at the same
-      range. Re-test after the ~20° re-tilt with a fresh empty + seated
-      pair. If it persists, the background needs depth behind the subject
-      (move the armchair, or aim across more open floor), or the ToF's role
-      in this pose is posture/standing rather than presence.
+- [x] ~~The ToF can't see a seated subject in the current pose.~~
+      Resolved by the ~20° re-tilt (2026-11-22): seated vs empty now
+      changes ~22 ToF zones, mostly invalid → ~0.5 m, because the empty
+      black chair back returns nothing. See NOTES, "After the ~20°
+      re-tilt".
+- [ ] **Fix the chair for collection.** In this pose the chair *is* the
+      empty-scene signature: same chair, same marked position, nothing
+      draped on the back — or vary it deliberately and record it.
       For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
       the scene's top right); how the breakout is mounted decides the rest.
 - [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in

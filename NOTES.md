@@ -1068,6 +1068,33 @@ which is column 7 in the world frame. Both sensors agree with it.
 - At close range, expect the two sensors to disagree vertically by
   parallax. Use close targets for direction only.
 
+#### After the ~20° re-tilt: both sensors see the seated subject
+
+Seated vs empty, same chair position, medians per zone:
+
+- **ToF:** ~22 of 64 zones change, all in **columns 0–4, rows 2–7**; the right
+  half matches empty to within 2 cm. Head and shoulders go from **no return
+  to 0.52–0.57 m**, and torso/lap zones from ~1.2 m to 0.87–0.95 m. Valid
+  zones: empty 31–33, seated 40–45.
+- **Thermal:** empty flat (2.5 °C span); seated, head at rows 2–3 columns
+  3–4 at ~30 °C, torso below in columns 2–5, about +5 °C over the room.
+
+The surprise is *why* the ToF sees the subject: **the empty black leather
+chair back returns nothing**, and a body in front of it returns strongly. So
+the empty signature here is a block of invalid zones, and occupancy shows up
+as invalid → ~0.5 m. Two consequences:
+
+- The invalid-zone encoding question in TODO is now load-bearing for this
+  pose: "no return" *is* the empty-chair signature. Encoding it as 0 mm or
+  dropping it would erase the main ToF signal.
+- The chair is part of the sensor. A different chair, a jacket over the
+  back, or the chair rolled away all change the empty signature. Fix the
+  chair and its position for collection, or deliberately vary it.
+
+The empty thermal frame kept a faint **+1 °C patch at the bottom left: the
+seat, still warm** a minute after the subject left. The settling-time item
+in TODO, now visible in this pose.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
