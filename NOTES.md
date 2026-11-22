@@ -1115,6 +1115,40 @@ Design choices worth keeping:
   matters and is deferred to training, where it is reversible.
 - The first frame after `start_ranging` is all-invalid — drop it.
 
+### Mount angle, measured by the board itself — 2026-11-22
+
+**The rig points 49.9° below horizontal.** Read from the on-board ISM330DHCX
+accelerometer (`tilt_check`): gravity (x 200, y −623, z +776 mg), |g| 1.015,
+noise ~2–7 mg over 104 samples. Roll 162° about the optical axis, recorded
+as this mount's reference.
+
+**Getting there.** The two-target tape-measure method failed in this room.
+The high mug (45 cm up, 115 cm out) sat inside the seat's own warmth, so the
+"target" was a 16-zone warm patch, not a mug; the floor mug was invisible.
+The ToF explained why: nothing in its view is farther than 1.54 m, and from
+165 cm any line of sight to the floor is at least 1.65 m — the floor is
+hidden behind the desk edge, chair and armchair. The ~34° it produced was the
+warm seat's centroid, and is wrong.
+
+**The sign was established, not assumed.** The first build took the IMU's +Z
+as the optical axis and reported 50° *up* — impossible for a sensor that sees
+a seated head below it. On this board the sensors look along the IMU's −Z.
+The corrected figure agrees with independent data: the seated head appeared
+~7° above the thermal axis (≈42° below horizontal), ~40 cm below the board,
+which puts it ~0.6 m away — and the ToF measured it at 0.52–0.57 m.
+
+**Consequence for Gate 2.** At ~50° down, the thermal field spans roughly
+20°–80° below horizontal and the ToF 27°–72°. The view is a steep look down
+at a seated person from close range. A *standing* person's head is above the
+board and out of frame entirely. That is fine for presence, but it weakens
+`standing` as a class, and should be decided before collection: either
+accept "seated / present / empty" as the claim, or raise the tilt for a view
+that includes standing posture and re-check seated visibility.
+
+**Drift detection is now one call away.** `ism330dhcx::tilt()` is in the
+library. Next: read it at the start of every `fused_stream` session and
+record it, so a knocked rig shows up as a number instead of as label noise.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

@@ -108,11 +108,14 @@ Ordered by when it matters, not by size.
       the two-probes-two-placements error that made today's column mapping
       ambiguous. Large area and moderate temperature beat small and hot —
       see NOTES on why a 450 °C soldering iron is a *worse* probe than a mug.
-- [ ] **Measure the mount angle in the new pose.** September's ~20° figure
-      is void — it was derived with the wrong AMG vertical orientation, and
-      the rig has since moved. Two known targets at different heights
-      recover the angle without an inclinometer — keep that as the
-      procedure.
+- [x] ~~Measure the mount angle in the new pose.~~ **49.9° below
+      horizontal**, 2026-11-22, from the on-board accelerometer
+      (`tilt_check`). The tape-measure method failed here — furniture hides
+      the floor and the warm seat mimics the target. See NOTES, "Mount angle,
+      measured by the board itself".
+- [ ] **Decide the class set for this pose before Gate 2.** At ~50° down a
+      standing person's head is out of frame. Either claim seated / present /
+      empty, or raise the tilt and re-check that seated is still separable.
 - [ ] **Mark the ball head, clamp position and column extension.** A long
       column with an offset load on a ball joint, clamped to a desk people
       lean on, is the geometry-drift risk in physical form.
@@ -218,7 +221,10 @@ wiring and neither can disturb the sensors we care about.
       median 0.13 °C, putting up to ±1.25 °C of drift on off-target zones
       against a peak signal of +3.5 °C. Slow ambient drift currently rides on
       every reading and can masquerade as signal at only ~3:1.
-- [ ] **ISM330DHCX (0x6b) — detect that the rig has been moved.** The
+- [~] **ISM330DHCX (0x6b) — detect that the rig has been moved.**
+      Driver and `tilt_check` done 2026-11-22 (reference: 49.9° down, roll
+      162°). Remaining: read it at the start of each `fused_stream` session
+      and record it with the data. Original reasoning follows: the
       roadmap's biggest stated risk is that sensor geometry shifts between
       sessions and injects label noise that stays invisible until the model
       underperforms for reasons nobody can diagnose. An accelerometer already

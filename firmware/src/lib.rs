@@ -9,5 +9,6 @@
 
 pub mod amg8833;
 pub mod clock;
+pub mod ism330dhcx;
 pub mod orientation;
 pub mod vl53l5cx;

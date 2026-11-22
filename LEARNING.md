@@ -254,6 +254,7 @@ firmware/
       find_pwren.rs     which pin turns the sensor on?
       tof_probe.rs      does the C driver work at all?
       fused_stream.rs   both sensors, paired — the dataset format
+      tilt_check.rs     how far down is the rig pointing?
       tof_range.rs      live distance grid
       thermal_probe.rs  live temperature grid
   vendor/
