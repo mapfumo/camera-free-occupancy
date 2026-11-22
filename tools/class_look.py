@@ -47,10 +47,14 @@ for cm in (blue, orange_r, diverging):
 frames = {c: [] for c in CLASSES}
 per_session = []
 dayparts, dates = set(), set()
+by_daypart = {}
 for path in sorted(glob.glob(os.path.join(SESS, "*.csv.gz"))):
+    if path.endswith(".labels.csv.gz"):
+        continue
     rows = list(csv.DictReader(gzip.open(path, "rt")))
     cls = rows[0]["label"].split("/")[0]
-    dayparts.add(rows[0]["label"].split("/")[-1])
+    daypart = rows[0]["label"].split("/")[-1]
+    dayparts.add(daypart)
     dates.add(os.path.basename(path)[:10])
     d = np.array([[int(r[f"d{i:02d}"]) for i in range(64)] for r in rows], float)
     s = np.array([[int(r[f"s{i:02d}"]) for i in range(64)] for r in rows])
@@ -59,8 +63,22 @@ for path in sorted(glob.glob(os.path.join(SESS, "*.csv.gz"))):
     excess = h - np.median(h, axis=1, keepdims=True)
     near = (valid & (d < 620)).sum(1)
     hot = (excess > 1.5).sum(1)
-    frames[cls].append((d, valid, excess, near, hot))
-    per_session.append((os.path.basename(path)[11:-7], cls, near, hot))
+    # Per-frame labels override the session class where they exist
+    # (sessions/README.md); unsure and blank frames are left out.
+    lab_path = path[:-len(".csv.gz")] + ".labels.csv.gz"
+    if os.path.exists(lab_path):
+        lab = {r["frame"]: r["label"]
+               for r in csv.DictReader(gzip.open(lab_path, "rt"))}
+        per_frame = np.array([lab.get(r["frame"], "") for r in rows])
+    else:
+        per_frame = np.full(len(rows), cls)
+    for c in CLASSES:
+        m = per_frame == c
+        if m.any():
+            frames[c].append((d[m], valid[m], excess[m], near[m], hot[m]))
+            by_daypart.setdefault((c, daypart), []).append((near[m], hot[m]))
+    tag = os.path.basename(path)[11:-7] + ("*" if os.path.exists(lab_path) else "")
+    per_session.append((tag, cls, near, hot))
 
 # ---------- figure 1: class averages ----------
 plt.rcParams.update({"font.size": 9, "text.color": INK, "axes.labelcolor": INK2,
@@ -153,3 +171,13 @@ print("per session: share of frames with a person signature (near>=3 or hot>=2)"
 for name, cls, near, hot in per_session:
     sig = ((near >= 3) | (hot >= 2)).mean()
     print(f"  {name:22s} {cls:8s} {sig:6.0%}   near median {np.median(near):4.0f}   hot median {np.median(hot):4.0f}")
+
+print("\nper class and daypart (frame-level labels): person-signature share, near / hot medians")
+for cls in CLASSES:
+    for dp in ("am", "pm", "eve"):
+        parts = by_daypart.get((cls, dp))
+        if not parts:
+            continue
+        near = np.concatenate([p[0] for p in parts]); hot = np.concatenate([p[1] for p in parts])
+        sig = ((near >= 3) | (hot >= 2)).mean()
+        print(f"  {cls:8s} {dp:4s} {near.size:6d} frames   {sig:6.1%}   near {np.median(near):3.0f}   hot {np.median(hot):3.0f}")

@@ -1396,3 +1396,71 @@ keep the thermal count over its cutoff, so empty gaps pre-fill as
 the bottom half only, none in the top — confirmed against the video at
 four points; the gaps were checked on video at four more. A draft built
 from that was reviewed in the tool and accepted.
+
+### Morning round; the classes hold across all three dayparts — 2026-11-23
+
+Sessions 01–11 on 2026-11-23, 05:30–07:25: 01–04 `empty`
+(marked/in/turned/away), 05–07 `seated` (upright, leaning back, leaning
+in), 08–10 `present` (standing at the desk, reaching across, walking past),
+and 11 `empty/marked` again at the end. Every session has webcam video, so
+the lamp/light state could never track the class. Tilt 49.36–50.84 on
+single frames, every 5 s median inside the reference band; no drift
+warnings.
+
+**Daylight barely moves the empty scene.** The round started at dawn and
+ended in full daylight. Session 11 was recorded ~1 h 40 min after session
+01, same chair state, and differs from it in only 5 of 64 ToF zones. Ending
+on an `empty` session is cheap insurance: without it, `empty` would only
+exist in the dimmest light of the round and brightness would track the
+class.
+
+**The morning room is ~4 °C cooler, so people stand out more.** Frame median
+~22.8 °C against ~26.8 °C in the evening, with a ~1.5 °C cool-top /
+warm-bottom gradient in the empty room. The warmest zone on a seated person
+was +5.0–5.5 °C over the frame median against +3.0–3.5 °C pm/eve, and
+`seated` thermal zones over +1.5 °C went from a median of 10–13 to 19. Real
+daypart variation, and the reason a model should not lean on a fixed
+thermal contrast.
+
+**Leaning back puts the seated person in the top half.** Session 06: near
+ToF returns median 7 zones in the top half, ~1 in the bottom — the same as
+pm 08 and eve 18. The rule of thumb from labelling session 23 ("seated =
+near returns in the bottom half only") is true of upright and leaning-in,
+not of leaning back. Seated vs present needs the thermal position as well
+as the ToF.
+
+![Three dayparts, class grids](figures/gate2/2026-11-23_three_dayparts_grids.png)
+
+![Three dayparts, every frame](figures/gate2/2026-11-23_three_dayparts_scatter.png)
+
+`class_look.py` now honours per-frame labels (it previously crashed on the
+`.labels.csv.gz` files) and prints a class × daypart table. 34 sessions:
+
+| class | am | pm | eve |
+|-------|----|----|-----|
+| `empty` with a person signature | 0% | 0% | 4.3% |
+| `seated` | 100% | 100% | 100% |
+| `present` (per-frame labels where present) | 100% | 100% | 100% |
+
+The 4.3% is 165 frames of session 23 labelled `empty` by eye that still
+carry a warm seat (thermal only, no near ToF returns) — the warm-seat
+ghost from that session, not a labelling error. It is the "thermal
+persistence" decision in TODO, now with data behind it.
+
+The grids still separate cleanly: `empty` flat thermal and far ToF;
+`seated` warm block lower-left with near returns along the bottom;
+`present` warm upper-left with near returns filling the top. On the
+two-number scatter `present` overlaps `seated` more than it did — standing
+further back (session 08) and reaching across (09) land in seated
+territory — but not in the grids, where the warmth sits higher.
+
+**Session 10 labels** (walking past): 485 present / 355 empty, reviewed
+against the video, pre-fill accepted unchanged.
+
+**Two hardware faults, both recovered.** (1) The first attempt at session
+07 stopped at start with no AMG8833 on the bus; a scan straight after found
+it. With the ToF `is_alive` failure on 2026-11-22 that is one start-up
+dropout per sensor. (2) Session 09 lost the ST-LINK at 144 s — kernel USB
+`error -71`, re-enumerated a second later — almost certainly the cable
+tugged while reaching across the desk. 652 good frames kept. Both in TODO
+for Phase 6, where nobody is there to retry.

@@ -146,6 +146,10 @@ Ordered by when it matters, not by size.
       First run 2026-11-22 (round 1, one afternoon): classes separate in
       both sensors and in position. Exit when that still holds across
       several days and all three dayparts.
+      **2026-11-23: all three dayparts done** (am round, sessions 01–11);
+      the classes still separate — NOTES, "Morning round". Still needed:
+      a second day (the whole dataset is 22–23 Nov), and the afternoon
+      walking-past session below.
 
 - [ ] **Per-frame labels for walking-past sessions — settle before Gate 3.**
       Session 12 (walking past) has a person in view in only ~54% of
