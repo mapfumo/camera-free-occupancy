@@ -1260,6 +1260,36 @@ recorded across several chair states, with the state in the label
 (`empty/out`, …). The marks stay as the `marked` reference state. Written up
 in [`COLLECTION.md`](COLLECTION.md).
 
+### Gate 2: the `empty` sessions — 2026-11-22
+
+Five `empty` sessions, one per chair state, 2.5 min each (750 frames), all
+recorded as the last 150 s of a 13.5-minute run so the seat had settled.
+Every one: nobody in view, no drift warnings, tilt 49.72–49.97°.
+
+ToF zones differing from session 01 (`marked`), same >80 mm / validity-flip
+test as before:
+
+| session | chair | vs 01 |
+|---------|-------|------:|
+| 02 | `out` | 9 |
+| 03 | `in` | 13 |
+| 04 | `turned` | 18 |
+| 05 | `away` | 12 |
+
+`turned` changes the scene most: swivelling presents the chair back and arms
+edge-on.
+
+**`out` and `away` are indistinguishable to the sensors.** 02 vs 05: 7 zones
+differ, all marginal returns at 1.5–1.9 m that flicker within a single
+session (valid-zone count ranges 18–39 within session 05); every zone valid
+in both agrees within 16 mm. Either the chair in 02 ended up out of view, or
+a black leather chair 50 cm back returns nothing to the ToF — plausible,
+given the empty chair back already returns nothing at its marked position.
+Both are correctly `empty`; the chair state is metadata, so 02 stands.
+
+Session 04's discarded first minutes showed the seat effect again: warmest
+zone +1.44 °C at minute 0, back to the room's +0.75 °C by minute 3.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
