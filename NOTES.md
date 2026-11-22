@@ -1095,6 +1095,26 @@ The empty thermal frame kept a faint **+1 °C patch at the bottom left: the
 seat, still warm** a minute after the subject left. The settling-time item
 in TODO, now visible in this pose.
 
+### Combined stream — 2026-11-22
+
+`fused_stream` pairs both sensors on one bus. First hardware run: 66 pairs
+in ~13 s, device clock spacing exactly 200 ms after the first frame, no
+failed reads, subject in the same place in both grids.
+
+Design choices worth keeping:
+
+- **ToF sets the pace** (it has data-ready); the AMG8833 is read *first*
+  (~12 ms) and the ToF results second (~100 ms at 100 kHz), so the pair skew
+  is bounded by the AMG's 10 Hz internal update, not the long transfer.
+- **5 Hz**, not 10: the ToF results transfer alone takes most of a 100 ms
+  period at 100 kHz. Raising the bus (TODO) would buy 10 Hz back.
+- **Raw distance plus status, never -1.** The first live run already showed
+  three statuses where `tof_range` printed one "invalid": 5 (valid), 255
+  (no target) and 10 (valid range, no target in the previous frame). In this
+  pose "no return" is the empty-chair signature, so the encoding decision
+  matters and is deferred to training, where it is reversible.
+- The first frame after `start_ranging` is all-invalid — drop it.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

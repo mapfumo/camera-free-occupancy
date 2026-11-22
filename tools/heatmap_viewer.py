@@ -24,7 +24,18 @@ Same for the thermal sensor -- the sensor type is detected automatically::
 
     cargo run --release --bin thermal_probe | python3 ../tools/heatmap_viewer.py
 
-Record frames to CSV at the same time, which is what Phase 2 needs::
+Both sensors at once, paired frame by frame, side by side::
+
+    cargo run --release --bin fused_stream | python3 ../tools/heatmap_viewer.py
+
+Record frames to CSV at the same time. With ``fused_stream`` this writes one
+row per pair -- raw distance, ToF status and temperature -- which is the
+format Phase 2 collects in::
+
+    cargo run --release --bin fused_stream \\
+        | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
+
+The single-sensor binaries record the same way, one sensor per row::
 
     cargo run --release --bin tof_range \\
         | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
@@ -76,7 +87,7 @@ PIXELS = GRID * GRID
 # defmt prepends a level tag and appends the source location, so both patterns
 # match loosely in the middle of a line rather than anchoring to its start.
 
-_FRAME_HEADER = re.compile(r"---\s*frame\s+(\d+)\s*---")
+_FRAME_HEADER = re.compile(r"---\s*frame\s+(\d+)\s*---\s*(tof|status|thermal)?")
 
 # Eight whitespace-separated integers immediately before the ASCII map, which
 # is the part that makes a row line unambiguous. Matching on "eight integers"
@@ -85,7 +96,16 @@ _FRAME_ROW = re.compile(r"\s((?:-?\d+\s+){%d})\|" % GRID)
 
 # defmt tags each line with the binary that emitted it, which is a more
 # reliable sensor identifier than guessing from the header's wording.
-_SOURCE = re.compile(r"\((tof_range|thermal_probe)\s")
+_SOURCE = re.compile(r"\((tof_range|thermal_probe|fused_stream)\s")
+
+# Metadata carried on fused_stream's header lines: the device clock on the
+# tof block, the AMG8833 die temperature on the thermal block.
+_DEVICE_MS = re.compile(r"\bt\s+(\d+)\s*ms")
+_DIE = re.compile(r"\bdie\s+(-?\d+)")
+
+# ULD target_status values that mean "this distance is a measurement". Must
+# match `vl53l5cx::is_valid` in the firmware.
+TOF_VALID_STATUS = frozenset({5, 9})
 
 
 @dataclass
@@ -102,7 +122,12 @@ class Frame:
     without transposing either."""
 
     sensor: str
-    """Either ``tof_range`` or ``thermal_probe``."""
+    """``tof_range`` or ``thermal_probe``; for ``fused_stream``, one of
+    ``fused_stream:tof``, ``fused_stream:status`` or ``fused_stream:thermal``,
+    naming which of the three blocks this is."""
+
+    header: str = ""
+    """The header line as printed, for metadata such as the device clock."""
 
     @property
     def rows(self) -> list[list[int]]:
@@ -125,6 +150,8 @@ class FrameParser:
     def __init__(self) -> None:
         self._number: Optional[int] = None
         self._sensor: str = "unknown"
+        self._kind: Optional[str] = None
+        self._header: str = ""
         self._rows: list[list[int]] = []
 
     def feed(self, line: str) -> Optional[Frame]:
@@ -138,6 +165,8 @@ class FrameParser:
             # A new header abandons any half-collected frame. That happens
             # normally -- the firmware's own error paths print between frames.
             self._number = int(header.group(1))
+            self._kind = header.group(2)
+            self._header = line
             self._rows = []
             return None
 
@@ -156,10 +185,14 @@ class FrameParser:
         if len(self._rows) < GRID:
             return None
 
+        sensor = self._sensor
+        if sensor == "fused_stream" and self._kind:
+            sensor = f"fused_stream:{self._kind}"
         frame = Frame(
             number=self._number,
             values=[v for row_values in self._rows for v in row_values],
-            sensor=self._sensor,
+            sensor=sensor,
+            header=self._header,
         )
         self._number = None
         self._rows = []
@@ -173,6 +206,71 @@ def parse_stream(lines: Iterator[str]) -> Iterator[Frame]:
         frame = parser.feed(line)
         if frame is not None:
             yield frame
+
+
+@dataclass
+class FusedFrame:
+    """One paired observation from ``fused_stream``: both sensors, one moment.
+
+    The ToF distances are kept **raw**, with the ULD status alongside, exactly
+    as the firmware sends them. Deciding what an invalid zone means as model
+    input is deliberately left for training time (see TODO.md); nothing here
+    collapses it.
+    """
+
+    number: int
+    device_ms: Optional[int]
+    """Milliseconds since boot on the device's own clock."""
+    distance: list[int]
+    """Raw distance per zone, mm, world frame. Meaningless where invalid."""
+    status: list[int]
+    """ULD target_status per zone. See TOF_VALID_STATUS."""
+    thermal: list[int]
+    """Temperature per pixel, centidegrees C, world frame."""
+    die: Optional[int]
+    """AMG8833 thermistor, centidegrees C."""
+
+    def display_distance(self) -> Frame:
+        """The ToF grid with invalid zones as -1, for drawing only."""
+        values = [
+            d if s in TOF_VALID_STATUS else -1
+            for d, s in zip(self.distance, self.status)
+        ]
+        return Frame(number=self.number, values=values, sensor="tof_range")
+
+    def display_thermal(self) -> Frame:
+        return Frame(number=self.number, values=self.thermal, sensor="thermal_probe")
+
+
+def assemble(frames: Iterator[Frame]) -> Iterator["Frame | FusedFrame"]:
+    """Group fused_stream's three blocks into FusedFrames; pass others through.
+
+    A pair is only yielded once all three blocks with one frame number have
+    arrived. Anything incomplete -- the stream cut mid-frame, a block lost --
+    is dropped, for the same reason the parser drops partial grids: a ToF
+    frame without its thermal partner is not a paired observation.
+    """
+    pending: dict[str, Frame] = {}
+    number: Optional[int] = None
+    for frame in frames:
+        if not frame.sensor.startswith("fused_stream:"):
+            yield frame
+            continue
+        if frame.number != number:
+            pending, number = {}, frame.number
+        pending[frame.sensor.split(":", 1)[1]] = frame
+        if pending.keys() >= {"tof", "status", "thermal"}:
+            ms = _DEVICE_MS.search(pending["tof"].header)
+            die = _DIE.search(pending["thermal"].header)
+            yield FusedFrame(
+                number=number,
+                device_ms=int(ms.group(1)) if ms else None,
+                distance=pending["tof"].values,
+                status=pending["status"].values,
+                thermal=pending["thermal"].values,
+                die=int(die.group(1)) if die else None,
+            )
+            pending, number = {}, None
 
 
 # ---------------------------------------------------------------------------
@@ -247,7 +345,7 @@ class HeatmapView:
     machinery buys nothing and costs readability.
     """
 
-    def __init__(self, style: SensorStyle, annotate: bool = True) -> None:
+    def __init__(self, style: SensorStyle, annotate: bool = True, axes=None) -> None:
         # Imported here rather than at module scope so that --record works on a
         # machine with no display and no matplotlib installed.
         import matplotlib.pyplot as plt
@@ -261,7 +359,11 @@ class HeatmapView:
         self._annotate = annotate
 
         plt.ion()
-        self._figure, self._axes = plt.subplots(figsize=(6.5, 7.0))
+        if axes is None:
+            self._figure, self._axes = plt.subplots(figsize=(6.5, 7.0))
+        else:
+            # Drawing into a panel of someone else's figure (the fused view).
+            self._figure, self._axes = axes.figure, axes
 
         # Built once, not per frame. `set_bad` paints cells with no reading in
         # a neutral grey that is deliberately not a value anywhere on the ramp,
@@ -294,10 +396,12 @@ class HeatmapView:
         self._axes.grid(which="minor", color="#ffffff", linewidth=0.5, alpha=0.25)
 
         self._labels: list = []
-        self._figure.tight_layout()
+        if axes is None:
+            self._figure.tight_layout()
 
-    def update(self, frame: Frame) -> None:
-        """Redraw with a new frame."""
+    def update(self, frame: Frame, pause: bool = True) -> None:
+        """Redraw with a new frame. ``pause=False`` leaves the GUI event pump
+        to the caller, so a two-panel view pauses once per pair, not twice."""
         np = self._np
         style = self._style
 
@@ -324,7 +428,8 @@ class HeatmapView:
                 f"{style.title}\nframe {frame.number}   ·   no valid readings",
                 fontsize=11,
             )
-            self._plt.pause(0.001)
+            if pause:
+                self._plt.pause(0.001)
             return
 
         # Rescale to the frame's own range.
@@ -354,7 +459,8 @@ class HeatmapView:
             self._draw_values(grid)
 
         # Hand control to the GUI briefly so the window stays responsive.
-        self._plt.pause(0.001)
+        if pause:
+            self._plt.pause(0.001)
 
     def _draw_values(self, grid) -> None:
         """Print each cell's value on top of it.
@@ -390,6 +496,35 @@ class HeatmapView:
 
     def keep_open(self) -> None:
         """Hold the window open after the stream ends."""
+        self._plt.ioff()
+        self._plt.show()
+
+
+class FusedView:
+    """Both sensors side by side, one window, updated together.
+
+    Same orientation in both panels -- the grids are already in the world
+    frame -- so a person should appear in roughly the same place in each. The
+    ToF's field is ~45 degrees against the thermal's ~60, so a ToF zone covers
+    less of the room: expect the ToF patch to look larger, not identical.
+    """
+
+    def __init__(self, annotate: bool = True) -> None:
+        import matplotlib.pyplot as plt
+
+        plt.ion()
+        self._plt = plt
+        figure, (left, right) = plt.subplots(1, 2, figsize=(12.5, 6.5))
+        self._tof = HeatmapView(STYLES["tof_range"], annotate, axes=left)
+        self._thermal = HeatmapView(STYLES["thermal_probe"], annotate, axes=right)
+        figure.tight_layout()
+
+    def update(self, fused: FusedFrame) -> None:
+        self._tof.update(fused.display_distance(), pause=False)
+        self._thermal.update(fused.display_thermal(), pause=False)
+        self._plt.pause(0.001)
+
+    def keep_open(self) -> None:
         self._plt.ioff()
         self._plt.show()
 
@@ -439,6 +574,58 @@ class CsvRecorder:
         self._count += 1
         # Flushed per frame on purpose: a session that ends with Ctrl-C or an
         # unplugged board should still have every frame it reported.
+        self._handle.flush()
+
+    @property
+    def count(self) -> int:
+        return self._count
+
+    def close(self) -> None:
+        self._handle.close()
+
+
+class FusedCsvRecorder:
+    """Append paired frames to a CSV, one row per pair -- the Phase 2 format.
+
+    Layout: ``timestamp, label, frame, device_ms, die_cC``, then
+    ``d00..d63`` (raw ToF distance, mm), ``s00..s63`` (ULD target_status) and
+    ``h00..h63`` (temperature, centidegrees C). All three grids row-major in
+    the world frame, so index ``rc`` means the same patch of room in each.
+
+    Distances are raw: where a zone's status is not valid the distance is not
+    a measurement, and it is the reader's job to decide what to put there.
+    Recording it this way costs nothing and keeps the decision reversible.
+    The first frame after the ToF starts ranging is typically all-invalid;
+    it is recorded like any other and is easy to drop by ``frame == 1``.
+    """
+
+    def __init__(self, path: str, label: str) -> None:
+        self._handle: TextIO = open(path, "a", newline="")
+        self._writer = csv.writer(self._handle)
+        self._label = label
+        self._count = 0
+        if self._handle.tell() == 0:
+            self._writer.writerow(
+                ["timestamp", "label", "frame", "device_ms", "die_cC"]
+                + [f"d{i:02d}" for i in range(PIXELS)]
+                + [f"s{i:02d}" for i in range(PIXELS)]
+                + [f"h{i:02d}" for i in range(PIXELS)]
+            )
+
+    def write(self, fused: FusedFrame) -> None:
+        self._writer.writerow(
+            [
+                datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+                self._label,
+                fused.number,
+                "" if fused.device_ms is None else fused.device_ms,
+                "" if fused.die is None else fused.die,
+            ]
+            + fused.distance
+            + fused.status
+            + fused.thermal
+        )
+        self._count += 1
         self._handle.flush()
 
     @property
@@ -501,13 +688,35 @@ def main() -> int:
         )
         return 2
 
-    view: Optional[HeatmapView] = None
-    recorder: Optional[CsvRecorder] = None
+    view = None
+    recorder = None
     frames = 0
 
     try:
-        for frame in parse_stream(source):
+        for frame in assemble(parse_stream(source)):
             frames += 1
+
+            if isinstance(frame, FusedFrame):
+                if recorder is None and args.record:
+                    recorder = FusedCsvRecorder(args.record, args.label)
+                    print(
+                        f"recording paired frames to {args.record} as '{args.label}'",
+                        file=sys.stderr,
+                    )
+                if view is None and not args.no_display:
+                    try:
+                        view = FusedView(annotate=not args.no_values)
+                    except ImportError:
+                        print(
+                            "matplotlib is not installed, so no window will be shown.",
+                            file=sys.stderr,
+                        )
+                        args.no_display = True
+                if recorder is not None:
+                    recorder.write(frame)
+                if view is not None:
+                    view.update(frame)
+                continue
 
             # Both the view and the recorder are created on the first frame,
             # because the sensor type is not known until one arrives -- and it
@@ -553,7 +762,7 @@ def main() -> int:
     if frames == 0:
         print(
             "No frames found. Is the firmware running one of the grid-printing "
-            "binaries (tof_range, thermal_probe)?",
+            "binaries (tof_range, thermal_probe, fused_stream)?",
             file=sys.stderr,
         )
         return 1

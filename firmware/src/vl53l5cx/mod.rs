@@ -45,3 +45,18 @@ pub const ORIENTATION: Orientation = Orientation { transpose: false, flip_rows: 
 /// The ULD's own `VL53L5CX_DEFAULT_I2C_ADDRESS` is `0x52`, which is the same
 /// address in 8-bit form. See [`platform`] for why that distinction matters.
 pub const DEFAULT_ADDRESS_7BIT: u8 = 0x29;
+
+/// Zone status meaning "range valid" — the one ST trusts fully.
+pub const STATUS_VALID: u8 = 5;
+/// Valid, but from a single detection; ST treats it as lower confidence.
+pub const STATUS_VALID_WEAK: u8 = 9;
+
+/// Whether a zone's distance can be trusted, from its `target_status`.
+///
+/// Every other status is some flavour of "no usable return" — out of range,
+/// too little signal (dark surfaces, which this rig's black chair is), or a
+/// wrapped/merged target — and the distance alongside it is not a
+/// measurement. The host-side viewer applies the same rule; keep them in step.
+pub const fn is_valid(status: u8) -> bool {
+    status == STATUS_VALID || status == STATUS_VALID_WEAK
+}

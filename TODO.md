@@ -116,10 +116,14 @@ Ordered by when it matters, not by size.
 - [ ] **Mark the ball head, clamp position and column extension.** A long
       column with an offset load on a ball joint, clamped to a desk people
       lean on, is the geometry-drift risk in physical form.
-- [ ] **Combined stream — both grids, one output.** Deliberately *after* the
-      rig: what this captures is Phase 2's dataset, and the geometry it records
-      should be the final one. Building it against jumpers means recording a
-      layout that is about to change.
+- [x] ~~Combined stream — both grids, one output.~~ Done 2026-11-22:
+      `fused_stream` reads both on one bus at 5 Hz, thermal first then ToF,
+      pairs them under one frame number with the device clock. Raw ToF
+      distance *and* status are recorded, not collapsed to -1, so the
+      invalid-zone decision stays open until training. The viewer shows both
+      side by side, and `--record` writes one CSV row per pair
+      (`d00..d63`, `s00..s63`, `h00..h63`). The first frame after start is
+      all-invalid; drop `frame == 1`.
 - [x] ~~Aim the AMG8833 and confirm it sees a warm target.~~ Done — hot mug
       peaked at 71.5 °C against a ~21 °C room, appearing and disappearing
       cleanly. Entered from the bottom-left, which fixes its orientation.
