@@ -216,10 +216,12 @@ wiring and neither can disturb the sensors we care about.
       median 0.13 °C, putting up to ±1.25 °C of drift on off-target zones
       against a peak signal of +3.5 °C. Slow ambient drift currently rides on
       every reading and can masquerade as signal at only ~3:1.
-- [~] **ISM330DHCX (0x6b) — detect that the rig has been moved.**
-      Driver and `tilt_check` done 2026-11-22 (reference: 49.9° down, roll
-      162°). Remaining: read it at the start of each `fused_stream` session
-      and record it with the data. Original reasoning follows: the
+- [x] **ISM330DHCX (0x6b) — detect that the rig has been moved.** Done
+      2026-11-22. `fused_stream` prints a 1 s averaged `mount tilt` at start
+      and a sample on every frame; the CSV carries `tilt_deg`/`roll_deg`;
+      the viewer warns if the tilt moves >1° from the session's start.
+      Reference for this mount: 49.9–50.2° down, roll 162°. Compare each
+      session's start against it. Original reasoning follows: the
       roadmap's biggest stated risk is that sensor geometry shifts between
       sessions and injects label noise that stays invisible until the model
       underperforms for reasons nobody can diagnose. An accelerometer already

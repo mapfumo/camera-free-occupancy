@@ -102,6 +102,12 @@ _SOURCE = re.compile(r"\((tof_range|thermal_probe|fused_stream)\s")
 # tof block, the AMG8833 die temperature on the thermal block.
 _DEVICE_MS = re.compile(r"\bt\s+(\d+)\s*ms")
 _DIE = re.compile(r"\bdie\s+(-?\d+)")
+# Mount angle from the on-board IMU, on the tof header; "tilt n/a" if absent.
+_TILT = re.compile(r"\btilt\s+(-?[\d.]+)\s*deg,\s*roll\s+(-?[\d.]+)\s*deg")
+
+# How far the mount may move from the session's first reading before the
+# viewer says so. Single-sample noise is ~0.3 degrees; a knock is more.
+TILT_ALARM_DEG = 1.0
 
 # ULD target_status values that mean "this distance is a measurement". Must
 # match `vl53l5cx::is_valid` in the firmware.
@@ -229,6 +235,11 @@ class FusedFrame:
     """Temperature per pixel, centidegrees C, world frame."""
     die: Optional[int]
     """AMG8833 thermistor, centidegrees C."""
+    tilt_deg: Optional[float] = None
+    """Optical axis below horizontal, degrees, one IMU sample. None if the
+    firmware had no IMU reading."""
+    roll_deg: Optional[float] = None
+    """Rotation about the optical axis, degrees. Zero is arbitrary per mount."""
 
     def display_distance(self) -> Frame:
         """The ToF grid with invalid zones as -1, for drawing only."""
@@ -262,6 +273,7 @@ def assemble(frames: Iterator[Frame]) -> Iterator["Frame | FusedFrame"]:
         if pending.keys() >= {"tof", "status", "thermal"}:
             ms = _DEVICE_MS.search(pending["tof"].header)
             die = _DIE.search(pending["thermal"].header)
+            tilt = _TILT.search(pending["tof"].header)
             yield FusedFrame(
                 number=number,
                 device_ms=int(ms.group(1)) if ms else None,
@@ -269,6 +281,8 @@ def assemble(frames: Iterator[Frame]) -> Iterator["Frame | FusedFrame"]:
                 status=pending["status"].values,
                 thermal=pending["thermal"].values,
                 die=int(die.group(1)) if die else None,
+                tilt_deg=float(tilt.group(1)) if tilt else None,
+                roll_deg=float(tilt.group(2)) if tilt else None,
             )
             pending, number = {}, None
 
@@ -587,7 +601,8 @@ class CsvRecorder:
 class FusedCsvRecorder:
     """Append paired frames to a CSV, one row per pair -- the Phase 2 format.
 
-    Layout: ``timestamp, label, frame, device_ms, die_cC``, then
+    Layout: ``timestamp, label, frame, device_ms, die_cC, tilt_deg,
+    roll_deg``, then
     ``d00..d63`` (raw ToF distance, mm), ``s00..s63`` (ULD target_status) and
     ``h00..h63`` (temperature, centidegrees C). All three grids row-major in
     the world frame, so index ``rc`` means the same patch of room in each.
@@ -599,18 +614,32 @@ class FusedCsvRecorder:
     it is recorded like any other and is easy to drop by ``frame == 1``.
     """
 
+    HEADER = (
+        ["timestamp", "label", "frame", "device_ms", "die_cC", "tilt_deg", "roll_deg"]
+        + [f"d{i:02d}" for i in range(PIXELS)]
+        + [f"s{i:02d}" for i in range(PIXELS)]
+        + [f"h{i:02d}" for i in range(PIXELS)]
+    )
+
     def __init__(self, path: str, label: str) -> None:
+        # Appending rows of one layout under another file's header would
+        # shift every column silently. Refuse instead.
+        try:
+            with open(path, newline="") as existing:
+                first = next(csv.reader(existing), None)
+        except FileNotFoundError:
+            first = None
+        if first is not None and first != self.HEADER:
+            raise SystemExit(
+                f"{path} has a different column layout (older format?). "
+                "Record to a new file."
+            )
         self._handle: TextIO = open(path, "a", newline="")
         self._writer = csv.writer(self._handle)
         self._label = label
         self._count = 0
-        if self._handle.tell() == 0:
-            self._writer.writerow(
-                ["timestamp", "label", "frame", "device_ms", "die_cC"]
-                + [f"d{i:02d}" for i in range(PIXELS)]
-                + [f"s{i:02d}" for i in range(PIXELS)]
-                + [f"h{i:02d}" for i in range(PIXELS)]
-            )
+        if first is None:
+            self._writer.writerow(self.HEADER)
 
     def write(self, fused: FusedFrame) -> None:
         self._writer.writerow(
@@ -620,6 +649,8 @@ class FusedCsvRecorder:
                 fused.number,
                 "" if fused.device_ms is None else fused.device_ms,
                 "" if fused.die is None else fused.die,
+                "" if fused.tilt_deg is None else fused.tilt_deg,
+                "" if fused.roll_deg is None else fused.roll_deg,
             ]
             + fused.distance
             + fused.status
@@ -691,12 +722,32 @@ def main() -> int:
     view = None
     recorder = None
     frames = 0
+    tilt_start: Optional[float] = None
+    tilt_alarmed = False
 
     try:
         for frame in assemble(parse_stream(source)):
             frames += 1
 
             if isinstance(frame, FusedFrame):
+                # Mount drift: compare against this session's first reading.
+                if frame.tilt_deg is not None:
+                    if tilt_start is None:
+                        tilt_start = frame.tilt_deg
+                        print(f"mount tilt {tilt_start:.1f} deg at session start",
+                              file=sys.stderr)
+                    moved = abs(frame.tilt_deg - tilt_start)
+                    if moved > TILT_ALARM_DEG and not tilt_alarmed:
+                        print(
+                            f"WARNING: mount tilt moved {moved:.1f} deg at frame "
+                            f"{frame.number} ({tilt_start:.1f} -> "
+                            f"{frame.tilt_deg:.1f}). The rig has been knocked; "
+                            "frames from here may not match the rest.",
+                            file=sys.stderr,
+                        )
+                        tilt_alarmed = True
+                    elif moved <= TILT_ALARM_DEG / 2:
+                        tilt_alarmed = False
                 if recorder is None and args.record:
                     recorder = FusedCsvRecorder(args.record, args.label)
                     print(

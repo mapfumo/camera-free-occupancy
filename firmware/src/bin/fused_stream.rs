@@ -46,6 +46,20 @@
 //! `t` is the device's own clock in milliseconds since boot, so frame spacing
 //! can be checked without trusting the host's pipe timing.
 //!
+//! # Mount angle
+//!
+//! The on-board ISM330DHCX (I2C2 — a separate bus, so it costs the pairing
+//! nothing) supplies the rig's angle twice:
+//!
+//! - **At start,** one second averaged, printed as a `mount tilt` line: the
+//!   session's reference, to compare against other sessions.
+//! - **Every frame,** one sample, on the tof header as `tilt … deg, roll …
+//!   deg`. A knock mid-session shows up at the frame it happened, instead of
+//!   as label noise nobody can find.
+//!
+//! If the IMU fails, the stream carries on and says `tilt n/a`: losing the
+//! angle is worth a warning, not a lost session.
+//!
 //! Run with:
 //! `cargo run --release --bin fused_stream | python3 ../tools/heatmap_viewer.py`
 
@@ -65,6 +79,7 @@ use panic_probe as _;
 
 use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
+use coworkos_firmware::ism330dhcx::{self, Ism330dhcx, MICRO_G_PER_LSB, Tilt};
 use coworkos_firmware::vl53l5cx::bindings::{
     VL53L5CX_Configuration, VL53L5CX_ResultsData, vl53l5cx_check_data_ready, vl53l5cx_get_ranging_data,
     vl53l5cx_init, vl53l5cx_is_alive, vl53l5cx_set_ranging_frequency_hz, vl53l5cx_set_resolution,
@@ -108,6 +123,32 @@ async fn main(_spawner: Spawner) {
     // invalidate the pointer the ULD holds — don't.
     let ctx: *mut BusContext = &mut bus;
     let amg_bus = || -> &mut Bus { unsafe { (*ctx).i2c() } };
+
+    // ---- ISM330DHCX on I2C2: mount angle ----
+    let mut imu_cfg = embassy_stm32::i2c::Config::default();
+    imu_cfg.frequency = Hertz::khz(100);
+    imu_cfg.timeout = Duration::from_millis(100);
+    let mut imu_bus = I2c::new_blocking(p.I2C2, p.PH4, p.PH5, imu_cfg);
+    let mut imu = match Ism330dhcx::init(&mut imu_bus) {
+        Ok(imu) => Some(imu),
+        Err(e) => {
+            warn!("IMU init failed, streaming without mount angle: {}", e);
+            None
+        }
+    };
+    if let Some(dev) = imu.as_mut() {
+        // Turn-on time, then the session reference.
+        Timer::after(Duration::from_millis(100)).await;
+        match reference_tilt(dev, &mut imu_bus).await {
+            Some(t) => info!(
+                "mount tilt {=f32} deg below horizontal, roll {=f32} deg, |g| {=f32} (1 s average)",
+                t.depression_deg,
+                t.roll_deg,
+                t.magnitude
+            ),
+            None => warn!("mount tilt reference failed"),
+        }
+    }
 
     // ---- AMG8833 ----
     let amg_address = if probe(amg_bus(), DEFAULT_ADDRESS) {
@@ -172,6 +213,7 @@ async fn main(_spawner: Spawner) {
         }
 
         let t_ms = Instant::now().as_millis();
+        let tilt = imu.as_mut().and_then(|dev| sample_tilt(dev, &mut imu_bus));
 
         // Thermal first — the short read — so the pair is as close in time
         // as this bus allows. A failed thermal read skips the pair rather
@@ -198,13 +240,57 @@ async fn main(_spawner: Spawner) {
         let distance = TOF_ORIENTATION.apply(&results.distance_mm);
         let status = TOF_ORIENTATION.apply(&results.target_status);
 
-        print_tof(frame, t_ms, &distance, &status, results.silicon_temp_degc);
+        print_tof(frame, t_ms, tilt, &distance, &status, results.silicon_temp_degc);
         print_status(frame, &status);
         print_thermal(frame, &thermal, die);
     }
 }
 
-fn print_tof(frame: u32, t_ms: u64, distance: &[i16; 64], status: &[u8; 64], silicon: i8) {
+/// One second of samples, averaged: the session's reference angle.
+async fn reference_tilt(imu: &mut Ism330dhcx, bus: &mut Bus) -> Option<Tilt> {
+    const SAMPLES: i64 = 104;
+    let mut sum = [0i64; 3];
+    let mut taken = 0;
+    let mut attempts = 0;
+    while taken < SAMPLES {
+        attempts += 1;
+        if attempts > 2000 {
+            return None; // ~4 s without a sample: something is wrong.
+        }
+        match imu.accel_ready(bus) {
+            Ok(true) => {}
+            Ok(false) => {
+                Timer::after(Duration::from_millis(2)).await;
+                continue;
+            }
+            Err(_) => return None,
+        }
+        let a = imu.read_accel(bus).ok()?;
+        for i in 0..3 {
+            sum[i] += a[i] as i64;
+        }
+        taken += 1;
+    }
+    // In g, so |g| reads as a sanity check near 1.0.
+    let g = |s: i64| (s * MICRO_G_PER_LSB as i64) as f32 / SAMPLES as f32 / 1_000_000.0;
+    Some(ism330dhcx::tilt(g(sum[0]), g(sum[1]), g(sum[2])))
+}
+
+/// The latest single sample. Noisier than the reference (~0.3°), which is
+/// fine: it is there to catch a knock, not to measure the mount.
+fn sample_tilt(imu: &mut Ism330dhcx, bus: &mut Bus) -> Option<Tilt> {
+    let a = imu.read_accel(bus).ok()?;
+    Some(ism330dhcx::tilt(a[0] as f32, a[1] as f32, a[2] as f32))
+}
+
+fn print_tof(
+    frame: u32,
+    t_ms: u64,
+    tilt: Option<Tilt>,
+    distance: &[i16; 64],
+    status: &[u8; 64],
+    silicon: i8,
+) {
     let mut min = i16::MAX;
     let mut max = i16::MIN;
     let mut valid = 0u32;
@@ -219,10 +305,16 @@ fn print_tof(frame: u32, t_ms: u64, distance: &[i16; 64], status: &[u8; 64], sil
         min = 0;
         max = 0;
     }
-    info!(
-        "--- frame {=u32} --- tof t {=u64} ms, {=u32}/64 valid, {=i16}..{=i16} mm, silicon {=i8} C",
-        frame, t_ms, valid, min, max, silicon
-    );
+    match tilt {
+        Some(t) => info!(
+            "--- frame {=u32} --- tof t {=u64} ms, tilt {=f32} deg, roll {=f32} deg, {=u32}/64 valid, {=i16}..{=i16} mm, silicon {=i8} C",
+            frame, t_ms, t.depression_deg, t.roll_deg, valid, min, max, silicon
+        ),
+        None => info!(
+            "--- frame {=u32} --- tof t {=u64} ms, tilt n/a, {=u32}/64 valid, {=i16}..{=i16} mm, silicon {=i8} C",
+            frame, t_ms, valid, min, max, silicon
+        ),
+    }
     for row in 0..8 {
         let mut art = [b' '; 8];
         let base = row * 8;

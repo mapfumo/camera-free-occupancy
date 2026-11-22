@@ -1198,6 +1198,18 @@ the tilt to bring standing into view — was rejected because the steep view
 is what gives the ToF its contrast on a seated person (the black chair
 returns nothing; a body in front of it returns strongly).
 
+### Mount angle in every frame — 2026-11-22
+
+`fused_stream` now reads the ISM330DHCX on I2C2 alongside the pair: a 1 s
+averaged reference at start (`mount tilt …`) and one sample per frame on the
+tof header, recorded as `tilt_deg` / `roll_deg`. First run: reference 50.2°,
+per-frame 50.0–50.1°, roll 162.0° — 0.3° above the afternoon's 49.9°, inside
+noise-plus-handling and well inside the 1° alarm.
+
+The viewer warns once when the tilt leaves the session's starting value by
+more than 1° (tested with a simulated 2.2° knock), and the recorder refuses
+to append to a CSV whose header differs, so old and new layouts can't mix.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
