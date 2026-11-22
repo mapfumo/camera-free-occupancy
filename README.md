@@ -144,8 +144,8 @@ details the phases).
 
 | Gate | | State |
 |------|-|-------|
-| 1 | Bring-up — both sensors on one bus, fixed rig | **in progress** |
-| 2 | Dataset — labelled classes, separable by eye as heatmaps | |
+| 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
+| 2 | Dataset — labelled classes, separable by eye as heatmaps | **next** |
 | 3 | Model — confusion matrix on held-out data | |
 | 4 | Live inference + on-device readout | |
 | 5 | Integrated into BACnet / Grafana | |
@@ -159,8 +159,11 @@ frame and registered against each other; the rig re-aimed at the desk, where
 both sensors clearly separate a seated person from an empty chair; a paired
 two-sensor stream at 5 Hz; the host-side viewer and CSV recorder.
 
-**Next:** mark the chair position, then tag `phase1-bringup`. A ten-minute
-soak confirmed the ToF's self-heating does not reach the thermal image.
+A ten-minute soak confirmed the ToF's self-heating does not reach the
+thermal image.
+
+**Next:** Gate 2 — collect labelled `empty` / `seated` / `present` sessions
+with `fused_stream`, recording the mount angle each session.
 The working list is [`TODO.md`](TODO.md).
 
 ## Documentation

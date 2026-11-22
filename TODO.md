@@ -71,16 +71,17 @@ Ordered by when it matters, not by size.
       sensors put it in the high columns. Never let the holder's body sit on
       the opposite side of the target — it is the strongest thermal source in
       the room and will "agree" with a wrong flip.
+      For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
+      the scene's top right); how the breakout is mounted decides the rest.
 - [x] ~~The ToF can't see a seated subject in the current pose.~~
       Resolved by the ~20° re-tilt (2026-11-22): seated vs empty now
       changes ~22 ToF zones, mostly invalid → ~0.5 m, because the empty
       black chair back returns nothing. See NOTES, "After the ~20°
       re-tilt".
-- [ ] **Fix the chair for collection.** In this pose the chair *is* the
-      empty-scene signature: same chair, same marked position, nothing
-      draped on the back — or vary it deliberately and record it.
-      For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
-      the scene's top right); how the breakout is mounted decides the rest.
+- [x] ~~Fix the chair for collection.~~ Position marked on the floor
+      2026-11-22. In this pose the chair *is* the empty-scene signature:
+      same chair, back on its mark, nothing draped on the back — or vary it
+      deliberately and record it.
 - [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in
       place 2026-11-22: `orientation.rs`, applied in `Amg8833::read_frame`
       and in `tof_range` (distance and status together). AMG8833 confirmed
@@ -110,9 +111,9 @@ Ordered by when it matters, not by size.
       `present`**, decided 2026-11-22. A standing head is out of frame at
       49.9° down, so standing and walking merge into `present`. Product
       claim: workstation occupancy. See the project plan, Phase 2.
-- [ ] **Mark the ball head, clamp position and column extension.** A long
-      column with an offset load on a ball joint, clamped to a desk people
-      lean on, is the geometry-drift risk in physical form.
+- [x] ~~Mark the ball head, clamp position and column extension.~~ Taped
+      and marked 2026-11-22. `tilt_check` reads 49.9° down / roll 162° as the
+      reference, so drift is now measurable rather than visual.
 - [x] ~~Combined stream — both grids, one output.~~ Done 2026-11-22:
       `fused_stream` reads both on one bus at 5 Hz, thermal first then ToF,
       pairs them under one frame number with the device clock. Raw ToF
@@ -124,7 +125,7 @@ Ordered by when it matters, not by size.
 - [x] ~~Aim the AMG8833 and confirm it sees a warm target.~~ Done — hot mug
       peaked at 71.5 °C against a ~21 °C room, appearing and disappearing
       cleanly. Entered from the bottom-left, which fixes its orientation.
-- [ ] Tag `phase1-bringup` once the above is done.
+- [x] ~~Tag `phase1-bringup`.~~ Tagged 2026-11-22. Gate 1 closed.
 
 ## Before Gate 2 data collection
 
