@@ -1346,6 +1346,42 @@ frames within a session are near-duplicates, so this is 12 situations, not
 10,000 observations. Separable here; robustness across days and dayparts is
 what the next rounds are for. Rerun the script after each round.
 
+### Evening round; video sync confirmed — 2026-11-22
+
+Sessions 13–22, evening lights, same protocol as round 1 (13–16 `empty`
+in marked/in/turned/away; 17–19 `seated`; 20–22 `present`). Every kept
+window passed; no drift warnings; tilt 49.74–49.94° throughout.
+
+**Evening adds far returns.** Empty-room ToF grids differ from their
+afternoon counterparts in 13–26 of 64 zones. Most of it is the top two
+rows: in the evening the ToF reaches the far wall at 1.6–2.0 m, where in
+daylight those zones returned nothing — less ambient IR, longer range. The
+rest is the known one-column chair shift. Exactly the daypart variation the
+`eve` sessions exist to capture; a model trained on `pm` alone would have
+seen those zones as always-invalid.
+
+![Both rounds, class grids](figures/gate2/2026-11-22_both_rounds_grids.png)
+
+![Both rounds, every frame](figures/gate2/2026-11-22_both_rounds_scatter.png)
+
+Both rounds together: `empty` 0% person signature in all 10 sessions;
+`seated` and standing/reaching `present` 100%; walking-past 54% (12) and
+73% (22). The picture from round 1 holds with evening added.
+
+**Video sync, end to end.** Session 22 was recorded with `--video`. The
+video and sensor stream ran 161.8 s and 161.7 s; stored offset −0.328 s.
+Whole-frame webcam motion does *not* correlate with the sensor signature
+(r ≈ 0) — the webcam sees the whole room behind the chair, the sensor only
+the desk and chair from above, so most of the motion the camera sees is
+outside the sensor's view. Checked by eye instead: at two sharp sensor
+onsets (host 25.9 s, 113.8 s), 0.25 s contact sheets show the person
+bending over the desk into the sensor's view at the onset frame. Offset
+correct to within about one sensor frame.
+
+Consequence for labelling: motion in the video can't auto-label frames.
+Per-frame labels must come from a person judging "is someone in the
+*sensor's* view", using the sensor heatmap alongside the video.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
