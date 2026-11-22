@@ -102,6 +102,12 @@ Ordered by when it matters, not by size.
       sensor, both gone on retry: suspect the shared SCL/SDA jumpers or a
       breadboard contact rather than either breakout. Reseat before the
       Phase 6 multi-day run, where nobody is there to retry.
+      **Separate fault, same morning:** session 09 (reaching across the
+      desk) lost the ST-LINK at 144 s — kernel `error -71`, USB
+      re-enumerated a second later. A host-side cable/connector glitch, not
+      the sensor bus; the AMG dropout before it left no USB trace. Route the
+      USB cable so reaching across the desk can't tug it, and for Phase 6
+      don't depend on a debug probe staying attached for days.
 - [ ] **Build a dual-modality target.** A hot water bottle taped behind a
       piece of card: a flat surface at a known distance for the ToF and a
       large warm area for the thermal, in the same place at the same instant.
