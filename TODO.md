@@ -143,8 +143,12 @@ Ordered by when it matters, not by size.
       sync confirmed end to end on session 22. Session 22 labelled
       2026-11-22 (541 present / 197 empty / 1 unsure; thermal-only
       `present` frames spot-checked against video — person at the edge of
-      the thermal's wider field, not residual warmth). Remaining: session
-      12 (no video — heatmaps only). Not a
+      the thermal's wider field, not residual warmth). Session 12 (no
+      video) dropped rather than labelled from heatmaps; replaced by 24
+      (walking past, video, labelled). Session 23 — sat down and got up
+      repeatedly — kept as a mixed session with per-frame labels.
+      Still to do: an afternoon walking-past session with video, to
+      replace 12's `pm` coverage. Not a
       detection heuristic: the auto-suggest is a starting point, and every
       frame is checked by eye, or the model just learns the rule.
 

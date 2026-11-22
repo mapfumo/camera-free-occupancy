@@ -28,6 +28,9 @@ Keys:
   a                   auto-suggest: fill every *unlabelled* frame from the
                       sensor signature (person -> session class, else empty).
                       A starting point only — step through and correct it.
+                      It never suggests `seated`, and after someone has sat
+                      down the warm seat keeps it saying `present` in an
+                      empty room for minutes — check every gap.
   w                   write labels
   q                   write and quit
   click timeline      jump to that frame
@@ -164,6 +167,10 @@ class Labeller:
         from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
         self.plt = plt
+        # matplotlib's own shortcuts collide with ours ('s' opens save-figure,
+        # 'p' pans, arrows step view history, 'q' closes) — switch them all off.
+        for key in [k for k in plt.rcParams if k.startswith("keymap.")]:
+            plt.rcParams[key] = []
         self.s, self.labels, self.video = session, labels, video
         self.i, self.mark, self.dirty = 0, None, False
 

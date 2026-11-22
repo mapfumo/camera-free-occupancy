@@ -1382,41 +1382,17 @@ Consequence for labelling: motion in the video can't auto-label frames.
 Per-frame labels must come from a person judging "is someone in the
 *sensor's* view", using the sensor heatmap alongside the video.
 
-## Vendor driver
+**Labelling, first pass.** `tools/label_frames.py` built; session 22
+labelled (541 present / 197 empty). Session 12 dropped: no video, and
+heatmap-only labels at the edge of the field of view are guesses.
+Replaced by session 24 (walking past, video; 355 present / 385 empty).
 
-VL53L5CX ULD **2.0.1** is on disk at
-`~/dev/6-month-plan/downloads/VL53L5CX_ULD_driver_2.0.1/`, alongside UM2884
-(the ULD guide).
-
-Layout that matters:
-
-- `VL53L5CX_ULD_API/inc` + `src` — the driver proper. This is the vendor code
-  that gets copied into `firmware/vendor/vl53l5cx/` and compiled by `cc`.
-- `Platform/platform.h` — the contract we implement. Six mandatory functions
-  and one optional:
-
-  | Function | Role |
-  |----------|------|
-  | `VL53L5CX_RdByte` | read one byte from a 16-bit register address |
-  | `VL53L5CX_WrByte` | write one byte |
-  | `VL53L5CX_RdMulti` | read a buffer |
-  | `VL53L5CX_WrMulti` | write a buffer |
-  | `VL53L5CX_SwapBuffer` | byte-swap a buffer, size always a multiple of 4 |
-  | `VL53L5CX_WaitMs` | delay |
-  | `VL53L5CX_Reset_Sensor` | optional; hardware reset, unused by the API |
-
-  Only the I2C pair and the delay touch hardware, which is what makes this a
-  good fit for a thin FFI shim over Embassy's I2C — the `unsafe` is
-  concentrated in a handful of functions rather than smeared through a HAL.
-
-- `Examples/Example_1_ranging_basic.c` — the reference call sequence to follow
-  for the first frame.
-- `CubeIDE_F401RE_Example/` — a full CubeIDE project for an F401RE. Not our
-  target and not our toolchain, but `Core/Src/platform.c` is a worked
-  implementation of the platform layer against ST's HAL and is worth reading
-  before writing ours.
-
-`VL53L5CX_NB_TARGET_PER_ZONE` defaults to 1 in `platform.h`. That is the right
-value for occupancy and keeps the RAM footprint and I2C traffic down; the
-`VL53L5CX_DISABLE_*` macros in the same header are the lever to pull if the
-frame transfer needs trimming later.
+Session 23 was meant as walking past but included sitting down and
+getting up about six times — kept as a mixed session (300 seated / 182
+present / 257 empty). It showed two things about the pre-fill: it never
+suggests `seated`, and the seat stays warm enough after someone gets up to
+keep the thermal count over its cutoff, so empty gaps pre-fill as
+`present`. Seated stretches have a clear ToF signature — near returns in
+the bottom half only, none in the top — confirmed against the video at
+four points; the gaps were checked on video at four more. A draft built
+from that was reviewed in the tool and accepted.

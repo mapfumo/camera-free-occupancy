@@ -141,7 +141,10 @@ python3 tools/label_frames.py sessions/2026-11-22_22_present-marked.csv.gz \
 ```
 
 Press `a` to pre-fill every frame from the sensor signature, then step
-through with the arrow keys and correct it: `e`/`p` label a frame, `m`
+through with the arrow keys and correct it. The pre-fill only knows
+`present` or `empty`, and it reads a seat warmed by someone who has just
+left as `present` — in any session that includes sitting, both are wrong
+until fixed (2026-11-22, session 23). Correct it: `e`/`p` label a frame, `m`
 then `e`/`p` labels a whole range, `w` saves. The question is always **"is
 someone in the sensor's view?"**, not "is someone in the room": the webcam
 sees the whole room, the sensor only the desk and chair from above, so a
