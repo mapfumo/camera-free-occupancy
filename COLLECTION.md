@@ -127,3 +127,24 @@ beside it holding one number, the offset between the two clocks
 is local only:** `sessions/video/` is git-ignored, and only labels derived
 from it are committed. The project is camera-free; the footage is a
 labelling aid, not data.
+
+**When trimming a video session**, add the original `host_s` of the first
+kept frame to the `.sync.json` as `"trim_host_s"` — the committed file
+re-zeroes `host_s`, and the labelling tool needs the trim point to find the
+matching video frame.
+
+### Labelling frames
+
+```bash
+python3 tools/label_frames.py sessions/2026-11-22_22_present-marked.csv.gz \
+    --video sessions/video/2026-11-22_22_present-marked.mkv
+```
+
+Press `a` to pre-fill every frame from the sensor signature, then step
+through with the arrow keys and correct it: `e`/`p` label a frame, `m`
+then `e`/`p` labels a whole range, `w` saves. The question is always **"is
+someone in the sensor's view?"**, not "is someone in the room": the webcam
+sees the whole room, the sensor only the desk and chair from above, so a
+person the camera sees clearly can still be an `empty` frame. Judge by the
+heatmaps; use the video to settle doubt (2026-11-22, "Evening round; video
+sync confirmed"). Commit the `.labels.csv.gz`; never the video.

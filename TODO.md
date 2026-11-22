@@ -138,13 +138,12 @@ Ordered by when it matters, not by size.
       Session 12 (walking past) has a person in view in only ~54% of
       frames: 21 passes of 0.6–25 s with empty room between. Labelled
       `present` wholesale, the gaps would teach the model that an empty
-      room is sometimes `present`. Future walking sessions record the webcam
-      alongside (COLLECTION.md, "Ground truth" — `--video` built
-      2026-11-22, sync offset ~−0.34 s; end-to-end check pending the first
-      walking session); session 12 gets per-frame
-      labels before training, or only its in-view stretches are used. Not a
-      detection heuristic — labelling with a hand-made rule just teaches the
-      model the rule.
+      room is sometimes `present`. Tool built 2026-11-22:
+      `tools/label_frames.py` (COLLECTION.md, "Labelling frames"); video
+      sync confirmed end to end on session 22. Remaining: label session 22
+      (has video) and session 12 (no video — heatmaps only). Not a
+      detection heuristic: the auto-suggest is a starting point, and every
+      frame is checked by eye, or the model just learns the rule.
 
 The procedure itself is [`COLLECTION.md`](COLLECTION.md). The items below
 are where its rules came from.

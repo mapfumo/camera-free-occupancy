@@ -36,12 +36,31 @@ All three grids are row-major in the same world frame: index `rc` is row
 column 0 on the left. Both sensors' cells at the same index look at the same
 patch of room (approximately: the ToF field is ~45°, the thermal ~60°).
 
+## Per-frame labels
+
+Some sessions are only partly their class — a walking-past session is
+`present` only while the person is in the sensor's view. Those sessions get
+a `<session>.labels.csv.gz` beside them, made with `tools/label_frames.py`:
+
+| Column | Meaning |
+|--------|---------|
+| `frame` | Matches `frame` in the session file |
+| `host_s` | Same as the session file |
+| `label` | `empty`, `seated`, `present` or `unsure`; blank = not labelled |
+
+Where a labels file exists it **overrides** the session-level class for
+each frame. Leave `unsure` and blank frames out of training.
+
 ## Reading
 
 ```python
 import pandas as pd
 df = pd.read_csv("sessions/2026-11-23_01_empty-marked.csv.gz")
 cls = df["label"].str.split("/").str[0]
+
+# per-frame labels, where a session has them
+lab = pd.read_csv("sessions/2026-11-22_22_present-marked.labels.csv.gz",
+                  keep_default_na=False)
 ```
 
 ## Privacy
