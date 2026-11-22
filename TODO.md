@@ -23,16 +23,9 @@ Ordered by when it matters, not by size.
       built for this that has never been used in anger. Every aiming decision
       on 2026-09-26 was made by reading 8x8 integer grids in a terminal, which
       is exactly the slow path it was written to replace.
-- [ ] **Check the thermal gap — convection half is already solved.**
-      Mounting the board in portrait for the tilt puts the GridEYE *below* the
-      SATEL, so the ToF's plume rises away from it rather than across it. That
-      was the risky mechanism and it is gone for free. What remains is
-      conduction through the shared protoboard, which is orientation-
-      independent and much weaker. Still worth one soak: run the ToF for ten
-      minutes in the final pose and check the GridEYE does not grow a fixed
-      warm region. Note the part runs hotter than recorded — 42 °C within five
-      frames, 51 °C at eight minutes and still climbing, so August's 44 °C was
-      a short measurement, not a plateau.
+- [x] ~~Check the thermal gap.~~ **Passed 2026-11-22.** Twelve-minute
+      soak from cold: ToF silicon 42 → ~47 °C, AMG die flat (−0.3 °C), no
+      zone rose more than one LSB (+0.25 °C). See NOTES, "Thermal soak".
 - [x] ~~Fix the tilt.~~ Set to **15° below horizontal** on 2026-09-26,
       derived rather than guessed: a 180 cm person at 2 m spans +4.0° to
       −39.7° against a 45° field, midpoint −17.9°, biased shallow to keep the

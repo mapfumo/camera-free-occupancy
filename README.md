@@ -159,8 +159,8 @@ frame and registered against each other; the rig re-aimed at the desk, where
 both sensors clearly separate a seated person from an empty chair; a paired
 two-sensor stream at 5 Hz; the host-side viewer and CSV recorder.
 
-**Next:** mark the chair position, run a ten-minute thermal soak, then tag
-`phase1-bringup`.
+**Next:** mark the chair position, then tag `phase1-bringup`. A ten-minute
+soak confirmed the ToF's self-heating does not reach the thermal image.
 The working list is [`TODO.md`](TODO.md).
 
 ## Documentation

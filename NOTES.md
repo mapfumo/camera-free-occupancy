@@ -1149,6 +1149,37 @@ that includes standing posture and re-check seated visibility.
 library. Next: read it at the start of every `fused_stream` session and
 record it, so a knocked rig shows up as a number instead of as label noise.
 
+### Thermal soak — PASSED, 2026-11-22
+
+Twelve minutes of `fused_stream` in an empty room, from a cold ToF (powered
+off beforehand), 3,560 paired frames, no read failures.
+
+| minute | ToF silicon | AMG die | frame median |
+|-------:|------------:|--------:|-------------:|
+| 0 | 42 °C | 30.43 °C | 25.75 °C |
+| 3 | 47 °C | 30.18 °C | 26.00 °C |
+| 6 | 46 °C | 30.18 °C | 25.75 °C |
+| 11 | 46 °C | 30.12 °C | 25.75 °C |
+
+The ToF self-heats by about 6 °C and plateaus near 47 °C. The AMG8833's die
+does not follow it at all — it drifts *down* 0.3 °C. Zone by zone, minutes
+1–2 against the last minute, relative to the frame median: largest rise
+**+0.25 °C** (one LSB, at the noise floor), mean absolute change 0.08 °C. No
+fixed warm region forms anywhere.
+
+The only structure is a −0.25 to −0.38 °C *cooling* across rows 5–6, centre:
+where the seat sits. That is the seat's residual warmth leaving, not the rig.
+
+Verdict: the portrait mount with the GridEYE below the SATEL removes the
+convection path, and conduction through the protoboard is below measurement.
+The rig does not contaminate its own thermal image. (August's "44 °C" and
+September's "51 °C and climbing" were with different mounts and longer runs;
+this mount plateaus at ~47 °C in this room.)
+
+One disturbance at minute 7 — median +1 °C and ToF valid zones 32 → 40 for
+under a minute, something entering the view — falls outside both comparison
+windows.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
