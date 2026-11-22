@@ -37,11 +37,10 @@ Ordered by when it matters, not by size.
       derived rather than guessed: a 180 cm person at 2 m spans +4.0° to
       −39.7° against a 45° field, midpoint −17.9°, biased shallow to keep the
       head in frame. Valid zones went 24-26 → 38-42 of 64.
-- [ ] **Move the Philips fan out of the near field.** A metre-tall reflective
-      column at 130 cm occupying columns 3-7 of the ToF array. Treat "nothing
+- [x] ~~Move the Philips fan out of the near field / boom clear of the door
+      jamb.~~ Moot since 2026-11-22: rig remounted at the desk (back-left
+      clamp, board on the boom, ~20° down, facing the chair). Keep "nothing
       within ~1 m of the field" as a precondition for every capture.
-- [ ] **Move the boom clear of the door jamb.** A static strip at 0.85-0.98 m
-      runs down column 7 in every frame. Confirm it frees up.
 - [ ] **Measure usable depth.** Detection is solid at ~1.5 m and absent at
       ~2 m, but whether that is the cone or the range is unknown. Walk out in
       half-metre steps and record where it is lost. That number decides how
@@ -53,9 +52,10 @@ Ordered by when it matters, not by size.
       "AMG8833 orientation — corrected".
 - [x] ~~Establish the ToF orientation and check registration.~~ Done
       2026-11-22. ToF is `flip_cols` only — raw row 0 is the top, raw column
-      0 is on the right, matching UM2884 §2.2. Registration checked with a
-      mug against a card held to one side: both sensors put it in columns
-      0–2. See NOTES, "ToF orientation and registration". The procedure
+      0 is on the right, matching UM2884 §2.2. Registration settled with a
+      hand ~17 cm in front of the board on the pole side: both sensors put
+      it in the high columns, which is the pole side seen from behind. See
+      NOTES, "Re-aim, and registration settled properly". The procedure
       below is kept for the next remount.
       **Procedure** (world frame and mechanism in
       `firmware/src/orientation.rs`). Run `tof_range` into the heatmap viewer,
@@ -73,9 +73,18 @@ Ordered by when it matters, not by size.
       **Left/right is the step that goes wrong.** Holding a target out in
       front means facing the sensor, which mirrors "your left". On
       2026-11-22 it was reported reversed both with and without the flip.
-      Skip step 3's judgement entirely: hold a dual-modality target clearly
-      to one side and compare which columns each sensor puts it in — the
-      verified AMG becomes the reference, and nobody's viewpoint matters.
+      Skip step 3's judgement entirely: hold an open hand ~20 cm in front of
+      the board on the pole side, standing on that same side, and check both
+      sensors put it in the high columns. Never let the holder's body sit on
+      the opposite side of the target — it is the strongest thermal source in
+      the room and will "agree" with a wrong flip.
+- [ ] **NEW — the ToF can't see a seated subject in the current pose.**
+      Seated vs empty differs only by the armrest; where the thermal sees
+      the person the ToF reads the chair and armchair behind at the same
+      range. Re-test after the ~20° re-tilt with a fresh empty + seated
+      pair. If it persists, the background needs depth behind the subject
+      (move the armchair, or aim across more open floor), or the ToF's role
+      in this pose is posture/standing rather than presence.
       For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
       the scene's top right); how the breakout is mounted decides the rest.
 - [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in
@@ -98,10 +107,10 @@ Ordered by when it matters, not by size.
       the two-probes-two-placements error that made today's column mapping
       ambiguous. Large area and moderate temperature beat small and hot —
       see NOTES on why a 450 °C soldering iron is a *worse* probe than a mug.
-- [ ] **Re-check the mount angle.** Measured at ~20° on 2026-09-26 against
-      15° as set, derived two ways from known mug positions. Either the ball
-      head crept or 15° was never achieved. Two known targets at different
-      heights recover the angle without an inclinometer — keep that as the
+- [ ] **Measure the mount angle in the new pose.** September's ~20° figure
+      is void — it was derived with the wrong AMG vertical orientation, and
+      the rig has since moved. Two known targets at different heights
+      recover the angle without an inclinometer — keep that as the
       procedure.
 - [ ] **Mark the ball head, clamp position and column extension.** A long
       column with an offset load on a ball joint, clamped to a desk people

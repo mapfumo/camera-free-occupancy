@@ -987,11 +987,86 @@ top) was right.
 the two sensors against one dual-modality target. Once one sensor is known,
 the other is measured against it, and nobody's viewpoint enters into it.
 
+> **Correction, same day:** the evidence above was weaker than written. The
+> thermal blob that "agreed" was almost certainly the *holder's body*, not
+> the mug — and the body is on the opposite side of the card from the arm
+> holding it, so a wrong flip could equally have produced the match. The
+> conclusion survived an unconfounded test; see "Re-aim, and registration
+> settled properly" below.
+
 **Not yet done:** cell-for-cell agreement. The ToF field is ~45° against the
 GridEYE's ~60°, so their cells differ in size, and the two breakouts sit a few
 centimetres apart. Same columns at 0.85 m is the pass for direction; how
 closely the grids align across the field needs a target stepped across it,
 and matters for Gate 3's input layout.
+
+### Re-aim, and registration settled properly — 2026-11-22
+
+#### The new pose
+
+The rig moved twice today. First pose: desk clamp at the **front-left** corner,
+board on top of the pole. The seated subject was 0.5–0.9 m away — too close:
+at 0.7 m the ToF field is ~60 cm wide, so a seated torso overflows it and a
+standing subject's head leaves the frame.
+
+Second (current) pose: clamp slid to the **back-left** corner against the
+wall, board on the **end of the horizontal boom** over the desk, about head
+height, facing the chair. Seated subject at roughly 1.0–1.1 m. Then
+**tilted down ~20°**, derived from the thermal image: a target at seated
+chest height on the chair landed in row 6 (~19° below axis) and now lands in
+rows 4–5.
+
+The boom puts an offset load on a ball joint at the end of a long lever —
+the geometry-drift risk, larger than before. Mark it.
+
+#### What the seated captures showed — the ToF can't see the subject here
+
+Comparing seated against empty, zone by zone, at the second pose before the
+re-tilt:
+
+- **Thermal:** clear. Head at rows 3–4, torso below, columns 3–7, peak
+  29 °C over a ~24.75 °C room.
+- **ToF:** the only change was a **cool** object at ~0.6 m in columns 0–1 that
+  did not move when the subject leaned hard to one side. Not the subject —
+  almost certainly the chair's armrest, shifted by sitting down. Where the
+  thermal sensor sees the subject, the ToF reads 1.26–1.45 m, matching the
+  empty scene.
+
+So the ToF does not separate a seated person from the black leather chair
+and the armchair behind it, which are at nearly the same range. Same failure
+as September's wall, in a new form: **no depth contrast, and dark surfaces
+returning little.** Unresolved; it's the open question for this pose.
+
+#### Registration settled — the hand test
+
+Two-position tests with a mug and card on the chair were too weak (the target
+smeared into the chair at the same depth, and moved under a thermal column
+between positions). What worked:
+
+**An open hand ~17 cm in front of the board, on the pole side, with the
+holder standing on that same side.** Close enough to dominate both sensors,
+and nothing warm or near on the other side to pull either sensor the wrong
+way.
+
+- ToF: near returns (157–191 mm) solid to the **right edge**, columns 6–7;
+  gaps and background at column 0.
+- Thermal: 30 °C band across the top, strongest in **columns 4–7**. Sits
+  higher than in the ToF because the GridEYE is mounted below the SATEL —
+  a few cm of baseline is a large angle at 17 cm.
+
+Ground truth from the photos, not from anyone's left/right: the pole is on
+the board's left *seen from the room*, so on the **right seen from behind**,
+which is column 7 in the world frame. Both sensors agree with it.
+**Current orientations stand: AMG8833 identity, VL53L5CX `flip_cols`.**
+
+**Lessons.**
+- The holder's body is the strongest thermal target in the room. Any
+  registration test where a person is in frame on the *other* side of the
+  target is confounded.
+- Define directions by fixed furniture (pole side, window side), never by
+  "your left".
+- At close range, expect the two sensors to disagree vertically by
+  parallax. Use close targets for direction only.
 
 ## Vendor driver
 
