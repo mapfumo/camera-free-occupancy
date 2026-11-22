@@ -129,6 +129,11 @@ Ordered by when it matters, not by size.
 
 ## Before Gate 2 data collection
 
+- [ ] **Gate 2 exit check — rerun `tools/class_look.py` after each round.**
+      First run 2026-11-22 (round 1, one afternoon): classes separate in
+      both sensors and in position. Exit when that still holds across
+      several days and all three dayparts.
+
 - [ ] **Per-frame labels for walking-past sessions — settle before Gate 3.**
       Session 12 (walking past) has a person in view in only ~54% of
       frames: 21 passes of 0.6–25 s with empty room between. Labelled

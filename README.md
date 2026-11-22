@@ -120,6 +120,15 @@ The firmware is a library (`src/lib.rs`, drivers in `src/vl53l5cx/` and
 The diagnostic programs are kept on purpose: each one settled a real fault, and
 together they are a reusable bring-up kit for this board.
 
+### Gate 2 exit check
+
+[`tools/class_look.py`](tools/class_look.py) reads every session and draws
+per-class average grids and a frame-level scatter into `figures/gate2/`:
+
+```bash
+python3 tools/class_look.py sessions figures/gate2/<round-name>
+```
+
 ### Heatmap viewer
 
 [`tools/heatmap_viewer.py`](tools/heatmap_viewer.py) turns any of the streams

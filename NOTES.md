@@ -1317,6 +1317,35 @@ back. The rest is empty room under a `present` label. Session labels work
 for sitting and standing; for walking they need per-frame labels from the
 webcam. Recorded as a Gate 3 prerequisite in TODO.
 
+### Gate 2 exit check, early run: the classes separate — 2026-11-22
+
+`tools/class_look.py` over the first round (12 sessions, one afternoon):
+per-class average grids on shared scales, and every frame reduced to two
+numbers — ToF zones nearer than 620 mm, thermal zones over +1.5 °C.
+
+![Per-class average grids](figures/gate2/2026-11-22_round1_grids.png)
+
+- **`empty`** — thermal flat (±0.6 °C); ToF sees only the far room,
+  1.0–1.7 m.
+- **`seated`** — warm block lower-left (rows 4–6, up to +2.1 °C); ToF
+  near returns 0.6–0.8 m along the **bottom** rows.
+- **`present`** — warmth moves upper-left (rows 0–3, up to +1.7 °C); ToF
+  near returns 0.5–0.7 m fill the **top and middle**. Standing puts the
+  body higher in the view and nearer the board.
+
+![Every frame as two numbers](figures/gate2/2026-11-22_round1_scatter.png)
+
+`empty` never shows a person signature (0 of 4,500 frames); every `seated`
+frame does. `present` spreads widely and its reaching-across frames overlap
+`seated` on these two numbers — though not in the grids, where they sit
+higher. The one genuine overlap is walking-past gaps landing on `empty`,
+because they *are* empty: the per-frame labelling item in TODO.
+
+**What this does not show.** One afternoon, one person, one lighting state;
+frames within a session are near-duplicates, so this is 12 situations, not
+10,000 observations. Separable here; robustness across days and dayparts is
+what the next rounds are for. Rerun the script after each round.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
