@@ -112,3 +112,18 @@ single-class sessions.
 part of the time — about half the frames in session 12 show an empty room.
 A session-level `present` label is wrong for those frames, so walking
 sessions need per-frame labels, and the video is where they come from.
+
+Add `--video` to the recording command:
+
+```bash
+cargo run --release --bin fused_stream \
+  | python3 ../tools/heatmap_viewer.py --record ../sessions/2026-11-23_04_present-marked.csv \
+      --label present/marked/am --video ../sessions/video/2026-11-23_04_present-marked.mkv
+```
+
+The video starts and stops with the recording and writes a `.sync.json`
+beside it holding one number, the offset between the two clocks
+(`video_s = host_s + host_s_to_video_s`, typically about −0.34 s). **Video
+is local only:** `sessions/video/` is git-ignored, and only labels derived
+from it are committed. The project is camera-free; the footage is a
+labelling aid, not data.

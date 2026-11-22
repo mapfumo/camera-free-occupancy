@@ -3,6 +3,8 @@ target/
 
 # Sessions are committed compressed only — see sessions/README.md
 sessions/*.csv
+# Webcam ground truth is never committed: the project is camera-free.
+sessions/video/
 
 # Python
 __pycache__/

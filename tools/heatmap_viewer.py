@@ -66,8 +66,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
+import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 import statistics
 import time
@@ -676,8 +679,106 @@ class FusedCsvRecorder:
     def count(self) -> int:
         return self._count
 
+    @property
+    def t0(self) -> float:
+        """The monotonic instant that is ``host_s == 0`` for this file."""
+        return self._t0
+
     def close(self) -> None:
         self._handle.close()
+
+
+class VideoRecorder:
+    """Webcam video alongside a session — ground truth for per-frame labels.
+
+    **Local only, never committed.** The project exists to sense occupancy
+    without a camera; the video is a labelling aid, and the labels derived
+    from it are what get published. Keep the files under ``sessions/video/``,
+    which git ignores.
+
+    Sync: with its default ``-ts`` mode, ffmpeg stamps v4l2 frames with
+    CLOCK_MONOTONIC — the clock ``time.monotonic()`` reads, and the one the
+    CSV recorder's ``host_s`` is measured from. ffmpeg reports the first
+    frame's stamp as ``start:``; the output video's time 0 is that frame. So a
+    single offset maps one onto the other, and it is the only thing the
+    sidecar stores — no absolute time of any kind:
+
+        video_s = host_s + host_s_to_video_s
+
+    Measured 2026-11-22: the first frame arrives ~0.33 s after launch, so the
+    offset is typically about -0.3 s (the first few sensor frames have no
+    video). ``host_s`` itself is stamped when a frame finishes parsing, a
+    pipe-latency behind the device; fine for labels at 5 Hz.
+    """
+
+    START = re.compile(r"start:\s*([\d.]+)")
+
+    def __init__(self, path: str, device: str, recording_t0: float) -> None:
+        self._path = path
+        self._t0 = recording_t0
+        self._offset: Optional[float] = None
+        self._proc = subprocess.Popen(
+            [
+                "ffmpeg", "-hide_banner", "-nostats",
+                "-f", "v4l2", "-ts", "default",
+                "-input_format", "mjpeg", "-video_size", "640x480",
+                "-framerate", "30", "-i", device,
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "28",
+                "-y", path,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self._errors: list[str] = []
+        self._reader = threading.Thread(target=self._read_stderr, daemon=True)
+        self._reader.start()
+
+    def _read_stderr(self) -> None:
+        assert self._proc.stderr is not None
+        for line in self._proc.stderr:
+            if self._offset is None:
+                m = self.START.search(line)
+                if m and "Input #0" not in line:
+                    start = float(m.group(1))
+                    self._offset = self._t0 - start
+                    with open(self._path + ".sync.json", "w") as f:
+                        json.dump(
+                            {
+                                "video": self._path.rsplit("/", 1)[-1],
+                                "host_s_to_video_s": round(self._offset, 4),
+                                "note": "video_s = host_s + host_s_to_video_s",
+                            },
+                            f,
+                            indent=2,
+                        )
+            if "rror" in line:
+                self._errors.append(line.strip())
+
+    @property
+    def offset(self) -> Optional[float]:
+        return self._offset
+
+    def close(self) -> None:
+        """Stop ffmpeg cleanly so the file is finalised, not truncated."""
+        if self._proc.poll() is None:
+            try:
+                assert self._proc.stdin is not None
+                self._proc.stdin.write("q")
+                self._proc.stdin.flush()
+            except (BrokenPipeError, OSError):
+                pass
+            try:
+                self._proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self._proc.terminate()
+                self._proc.wait(timeout=5)
+        self._reader.join(timeout=2)
+        if self._offset is None:
+            print(f"WARNING: video sync not established for {self._path}"
+                  + (f": {self._errors[-1]}" if self._errors else ""),
+                  file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -719,7 +820,20 @@ def main() -> int:
         action="store_true",
         help="omit the per-cell numbers, leaving just the colours",
     )
+    parser.add_argument(
+        "--video",
+        metavar="MKV",
+        help="also record the webcam, synced to --record, for per-frame "
+             "labelling (local only: keep under sessions/video/, never commit)",
+    )
+    parser.add_argument(
+        "--video-device",
+        default="/dev/video0",
+        help="webcam device for --video (default /dev/video0)",
+    )
     args = parser.parse_args()
+    if args.video and not args.record:
+        parser.error("--video needs --record: the video is synced to the CSV")
 
     source: TextIO = open(args.input) if args.input else sys.stdin
 
@@ -734,6 +848,7 @@ def main() -> int:
 
     view = None
     recorder = None
+    video: Optional[VideoRecorder] = None
     frames = 0
     tilt_recent: list[float] = []
     tilt_start: Optional[float] = None
@@ -772,6 +887,10 @@ def main() -> int:
                         f"recording paired frames to {args.record} as '{args.label}'",
                         file=sys.stderr,
                     )
+                    if args.video:
+                        video = VideoRecorder(args.video, args.video_device, recorder.t0)
+                        print(f"recording webcam to {args.video} (local only)",
+                              file=sys.stderr)
                 if view is None and not args.no_display:
                     try:
                         view = FusedView(annotate=not args.no_values)
@@ -819,6 +938,11 @@ def main() -> int:
     except KeyboardInterrupt:
         pass  # Ctrl-C is the normal way to end a session.
     finally:
+        if video is not None:
+            video.close()
+            if video.offset is not None:
+                print(f"video synced: video_s = host_s {video.offset:+.3f}",
+                      file=sys.stderr)
         if recorder is not None:
             print(
                 f"\nwrote {recorder.count} frames to {args.record}",

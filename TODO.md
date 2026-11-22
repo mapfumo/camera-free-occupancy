@@ -139,7 +139,9 @@ Ordered by when it matters, not by size.
       frames: 21 passes of 0.6–25 s with empty room between. Labelled
       `present` wholesale, the gaps would teach the model that an empty
       room is sometimes `present`. Future walking sessions record the webcam
-      alongside (COLLECTION.md, "Ground truth"); session 12 gets per-frame
+      alongside (COLLECTION.md, "Ground truth" — `--video` built
+      2026-11-22, sync offset ~−0.34 s; end-to-end check pending the first
+      walking session); session 12 gets per-frame
       labels before training, or only its in-view stretches are used. Not a
       detection heuristic — labelling with a hand-made rule just teaches the
       model the rule.
