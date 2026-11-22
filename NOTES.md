@@ -1210,6 +1210,35 @@ The viewer warns once when the tilt leaves the session's starting value by
 more than 1° (tested with a simulated 2.2° knock), and the recorder refuses
 to append to a CSV whose header differs, so old and new layouts can't mix.
 
+### Settling time after sitting: 10 minutes — 2026-11-22
+
+One continuous `fused_stream` run: 1.6 min empty (baseline), 10.6 min
+seated, then ~16 min empty with the chair pushed back onto its floor mark.
+Arrival and departure found from the data (≥3 ToF zones under 620 mm), not
+from a watch. Thermal compared as each zone's excess over its frame median,
+so room drift cancels.
+
+| after leaving | warmest zone vs baseline |
+|---|---|
+| 0:00 | +1.25 °C (row 6–7, centre: the seat) |
+| 1:00 | +0.62 °C |
+| 1:30 | +0.50 °C — one seat zone holds here |
+| 7:00 | +0.25 °C (one LSB) — noise floor, and stays there |
+
+A ±0.5 °C test calls it settled at 1:30, but a fixed +0.5 °C in the same
+seat zone until minute 7 is exactly the cue a model would learn ("someone
+just left"), so the honest figure is **7 minutes after a 10-minute sit**.
+Longer sits warm the seat more. **Rule: 10 minutes empty before recording
+`empty`** after anyone has sat in the chair.
+
+**The chair's floor mark is close but not exact.** ToF empty scene before
+the sit vs after the chair was returned: 9 of 64 zones differ (validity flip
+or >80 mm). Controls with the chair untouched: 1 zone across the soak, 4
+between two late windows of this run. So returning the chair adds ~5 zones
+of change, mostly validity flips at the chair's edges — consistent with the
+right position but a slightly different swivel. Mark rotation as well as
+position.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

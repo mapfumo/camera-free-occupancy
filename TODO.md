@@ -129,12 +129,15 @@ Ordered by when it matters, not by size.
 
 ## Before Gate 2 data collection
 
-- [ ] **Allow settling time between classes when recording.** The AMG8833
-      retains heat: after a mug was removed the whole frame still read ~1 °C
-      high, with the die 1.25 °C up. Frames recorded straight after a person
-      leaves still contain them, so back-to-back sessions would put the warm
-      ghost of `sitting` into the `empty` set. Decide a settling period and
-      write it into the collection procedure.
+- [x] ~~Allow settling time between classes when recording.~~
+      **Measured 2026-11-22: wait 10 minutes empty before recording `empty`**
+      after anyone has sat in the chair. After a 10.6-minute sit the seat
+      zone reached the noise floor (+0.25 °C) at 7 minutes; 10 gives margin
+      for longer sits. See NOTES, "Settling time after sitting".
+- [ ] **Mark the chair's rotation, not just its position.** Returning it to
+      the floor mark changed ~5 ToF zones beyond noise, mostly at the chair's
+      edges — the swivel differs. A tape line along one base leg or the seat
+      edge would fix it.
 - [ ] **Site the zone so subjects have depth behind them.** Measured
       2026-09-26: a person at 180 cm standing against a wall that reads
       1.71-1.98 m is *invisible* to the ToF — ≤5 cm of shift, inside the
