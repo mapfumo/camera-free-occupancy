@@ -140,8 +140,11 @@ Ordered by when it matters, not by size.
       `present` wholesale, the gaps would teach the model that an empty
       room is sometimes `present`. Tool built 2026-11-22:
       `tools/label_frames.py` (COLLECTION.md, "Labelling frames"); video
-      sync confirmed end to end on session 22. Remaining: label session 22
-      (has video) and session 12 (no video — heatmaps only). Not a
+      sync confirmed end to end on session 22. Session 22 labelled
+      2026-11-22 (541 present / 197 empty / 1 unsure; thermal-only
+      `present` frames spot-checked against video — person at the edge of
+      the thermal's wider field, not residual warmth). Remaining: session
+      12 (no video — heatmaps only). Not a
       detection heuristic: the auto-suggest is a starting point, and every
       frame is checked by eye, or the model just learns the rule.
 
