@@ -1239,6 +1239,27 @@ of change, mostly validity flips at the chair's edges — consistent with the
 right position but a slightly different swivel. Mark rotation as well as
 position.
 
+### Chair marks: they fix the reference, not the chair — 2026-11-22
+
+After adding a rotation mark (tape along one base leg, aligned seat-edge
+marks), the repeatability test: empty scene with the chair on its marks;
+chair rolled across the room and spun; returned using all three marks;
+empty scene again. Mount tilt identical (49.86° / 49.85°); within one
+recording, 0 ToF zones changed between halves.
+
+Between the two placements: **9 zones changed — no better than before the
+rotation mark.** But this time the pattern is legible: the chair's edge
+moved exactly one column (r3/r4 c2 valid → none, r3/r4 c1 none → ~1 m).
+One zone at ~1 m is ~10 cm. Tape marks put a rolling, swivelling chair back
+within about 10 cm, and the ToF resolves 10 cm.
+
+**Decision: stop chasing precision; vary the chair on purpose.** In a real
+office the chair is wherever the last person left it, so a model that needs
+the chair on its mark fails on day one. `empty` (and the other classes) are
+recorded across several chair states, with the state in the label
+(`empty/out`, …). The marks stay as the `marked` reference state. Written up
+in [`COLLECTION.md`](COLLECTION.md).
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

@@ -163,7 +163,7 @@ A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
 **Next:** Gate 2 — collect labelled `empty` / `seated` / `present` sessions
-with `fused_stream`, recording the mount angle each session.
+with `fused_stream`, following [`COLLECTION.md`](COLLECTION.md).
 The working list is [`TODO.md`](TODO.md).
 
 ## Documentation
@@ -172,6 +172,7 @@ The working list is [`TODO.md`](TODO.md).
 |------|------------|
 | [`LEARNING.md`](LEARNING.md) | Plain-language explanation of the whole project, for someone new to embedded |
 | [`NOTES.md`](NOTES.md) | Engineering log: measurements, findings, and the theories that failed |
+| [`COLLECTION.md`](COLLECTION.md) | Gate 2 recording procedure: classes, labels, and the rules each session follows |
 | [`TODO.md`](TODO.md) | Working list, ordered by when it matters |
 | [`occupancy-sensor-project-plan.md`](occupancy-sensor-project-plan.md) | The seven-phase plan |
 

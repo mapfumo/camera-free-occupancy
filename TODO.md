@@ -78,10 +78,10 @@ Ordered by when it matters, not by size.
       changes ~22 ToF zones, mostly invalid → ~0.5 m, because the empty
       black chair back returns nothing. See NOTES, "After the ~20°
       re-tilt".
-- [x] ~~Fix the chair for collection.~~ Position marked on the floor
-      2026-11-22. In this pose the chair *is* the empty-scene signature:
-      same chair, back on its mark, nothing draped on the back — or vary it
-      deliberately and record it.
+- [x] ~~Fix the chair for collection.~~ Marked 2026-11-22, then tested:
+      marks return it within ~10 cm, which the ToF resolves as a one-column
+      shift. **Superseded: the chair is varied on purpose and its state
+      recorded in the label** — see [`COLLECTION.md`](COLLECTION.md).
 - [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in
       place 2026-11-22: `orientation.rs`, applied in `Amg8833::read_frame`
       and in `tof_range` (distance and status together). AMG8833 confirmed
@@ -128,6 +128,9 @@ Ordered by when it matters, not by size.
 - [x] ~~Tag `phase1-bringup`.~~ Tagged 2026-11-22. Gate 1 closed.
 
 ## Before Gate 2 data collection
+
+The procedure itself is [`COLLECTION.md`](COLLECTION.md). The items below
+are where its rules came from.
 
 - [x] ~~Allow settling time between classes when recording.~~
       **Measured 2026-11-22: wait 10 minutes empty before recording `empty`**

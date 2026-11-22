@@ -93,6 +93,8 @@ so you have something to train/threshold against.
    from a torso and legs only — a distinction the rig is not placed to
    make honestly. The product claim becomes **workstation occupancy**:
    is someone here, and are they working at the desk.
+
+   The step-by-step recording procedure is [`COLLECTION.md`](COLLECTION.md).
 2. Mount the sensor at a realistic install height/angle (think:
    corner-of-room or above-a-doorway, like a real HVAC occupancy
    sensor would be mounted).
