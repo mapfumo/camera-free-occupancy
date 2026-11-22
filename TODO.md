@@ -106,9 +106,10 @@ Ordered by when it matters, not by size.
       (`tilt_check`). The tape-measure method failed here — furniture hides
       the floor and the warm seat mimics the target. See NOTES, "Mount angle,
       measured by the board itself".
-- [ ] **Decide the class set for this pose before Gate 2.** At ~50° down a
-      standing person's head is out of frame. Either claim seated / present /
-      empty, or raise the tilt and re-check that seated is still separable.
+- [x] ~~Decide the class set for this pose.~~ **`empty` / `seated` /
+      `present`**, decided 2026-11-22. A standing head is out of frame at
+      49.9° down, so standing and walking merge into `present`. Product
+      claim: workstation occupancy. See the project plan, Phase 2.
 - [ ] **Mark the ball head, clamp position and column extension.** A long
       column with an offset load on a ball joint, clamped to a desk people
       lean on, is the geometry-drift risk in physical form.

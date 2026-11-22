@@ -1180,6 +1180,24 @@ One disturbance at minute 7 — median +1 °C and ToF valid zones 32 → 40 for
 under a minute, something entering the view — falls outside both comparison
 windows.
 
+### Class set narrowed: empty / seated / present — 2026-11-22
+
+Decided after measuring the mount at 49.9° down. The thermal field covers
+roughly 20°–80° below horizontal; a standing person's head is above the
+165 cm board and never in frame. Telling `standing` from `walking_through`
+would rest on a torso and legs at the edge of the view — not something this
+placement can claim honestly. So:
+
+- `empty` — nobody in view, chair at its marked position
+- `seated` — one person in the chair at the desk
+- `present` — in view but not seated (standing at the desk, reaching
+  across, walking past)
+
+The product claim becomes workstation occupancy. The alternative — raising
+the tilt to bring standing into view — was rejected because the steep view
+is what gives the ToF its contrast on a seated person (the black chair
+returns nothing; a body in front of it returns strongly).
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

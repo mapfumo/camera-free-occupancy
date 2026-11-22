@@ -80,12 +80,19 @@ yet — just prove the physical link works.
 **Objective:** Capture labeled 8×8 frames for a small set of classes,
 so you have something to train/threshold against.
 
-1. Pick 3–4 classes to start simple, e.g.:
-   - `empty` — no one in the room
-   - `one_person_sitting` (at a desk, typical of the sensor's mount
-     height/angle)
-   - `one_person_standing`
-   - `walking_through` (person crossing the field of view)
+1. Three classes, **decided 2026-11-22** for the mount as built (desk
+   boom, 165 cm, 49.9° down):
+   - `empty` — nobody in view; chair at its marked position
+   - `seated` — one person in the chair at the desk
+   - `present` — someone in view but not seated: standing at the desk,
+     reaching across it, or walking past
+
+   Narrowed from the original four (`empty`, `sitting`, `standing`,
+   `walking_through`). At this tilt a standing person's head is above the
+   board and out of frame, so "standing" vs "walking" would be told apart
+   from a torso and legs only — a distinction the rig is not placed to
+   make honestly. The product claim becomes **workstation occupancy**:
+   is someone here, and are they working at the desk.
 2. Mount the sensor at a realistic install height/angle (think:
    corner-of-room or above-a-doorway, like a real HVAC occupancy
    sensor would be mounted).

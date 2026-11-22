@@ -120,7 +120,7 @@ Both repos have their own CLAUDE.md with firmware commands, probe IDs, pin assig
 The project follows `occupancy-sensor-project-plan.md` at the repo root:
 
 1. **Hardware bring-up** — I2C + VL53L5CX ULD via FFI, raw 8×8 frame over UART
-2. **Data collection** — labeled CSV frames per class (empty, sitting, standing, walking)
+2. **Data collection** — labeled CSV frames per class (`empty`, `seated`, `present` — decided 2026-11-22; see the project plan)
 3. **Model training** — STM32Cube AI Studio BYOD flow, validate on held-out data
 4. **Firmware integration** — live inference every 1–2s, output over telemetry, plus the ILI9341 readout
 5. **Gateway integration** — MQTT topic → BACnet object → Grafana panel
