@@ -253,6 +253,7 @@ firmware/
       pin_wiggle.rs     which physical pin is this?
       find_pwren.rs     which pin turns the sensor on?
       tof_probe.rs      does the C driver work at all?
+      fused_stream.rs   both sensors, paired — the dataset format
       tof_range.rs      live distance grid
       thermal_probe.rs  live temperature grid
   vendor/
@@ -633,6 +634,9 @@ cd firmware
 cargo run --release --bin tof_range | python3 ../tools/heatmap_viewer.py
 ```
 
+Pipe `fused_stream` in instead and it draws both sensors side by side, from
+readings taken together — which is what the model will actually see.
+
 **Why it exists.** The project's biggest risk is a badly aimed sensor rig
 where every recorded frame carries the same invisible defect — not discovered
 until a model underperforms for reasons nobody can diagnose. Watching a live
@@ -643,9 +647,16 @@ It also records to CSV, which is Phase 2's data collection in its simplest
 form:
 
 ```bash
-cargo run --release --bin tof_range \
+cargo run --release --bin fused_stream \
   | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
 ```
+
+Each row is one moment seen by both sensors: 64 distances, 64 ToF status
+codes and 64 temperatures. The distances are kept raw, with the status codes
+beside them, rather than replacing "no reading" with a number. What "no
+reading" should mean to a model is a real decision — in this rig it is
+exactly what an empty black chair looks like — and recording it raw means
+that decision can be made later without collecting the data again.
 
 One label per session rather than annotating afterwards: far less error-prone,
 and a session labelled wrongly can be thrown away whole instead of picked
@@ -656,8 +667,9 @@ apart.
 *It parses text rather than a binary protocol.* The firmware already prints
 readable grids for anyone watching the terminal, so consuming those adds no
 firmware code and keeps one source of truth. That's the right trade now and
-the wrong one later — a binary frame format would be faster and unambiguous —
-but that belongs with the combined-stream work.
+the wrong one later — a binary frame format would be faster and unambiguous.
+The combined stream kept the text format: at 5 Hz it costs nothing, and
+being able to read a capture by eye has already settled several arguments.
 
 *Colour maps are perceptually uniform, never rainbow.* `jet` and `turbo` are
 the reflex choice for sensor data and they actively mislead. Their lightness

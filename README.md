@@ -68,7 +68,10 @@ VL53L5CX (8×8 ToF)  +  AMG8833 (8×8 thermal)      shared I2C1 bus
 | HiLetgo ILI9341 2.8" TFT, SPI | On-device readout, Gate 4 — display only |
 
 Both sensors share I2C1 on PB8 (SCL) / PB9 (SDA) through the board's ARDUINO
-header, mounted side by side on a protoboard rig tilted 15° down.
+header, mounted side by side on a protoboard rig. The rig hangs from a
+desk-clamped boom at about head height, facing the seat from ~1 m and tilted
+~20° down. Both grids are corrected into one world frame in the driver
+(`firmware/src/orientation.rs`) and registered against each other.
 
 **Wiring warning.** The ARDUINO digital header on this board (`CN13`) runs in
 the *opposite* order to a NUCLEO-64's, and its first position is unpopulated.
@@ -89,6 +92,7 @@ pip install matplotlib numpy   # for the heatmap viewer
 
 cd firmware
 cargo build --release
+cargo run --release --bin fused_stream    # both sensors, paired frames
 cargo run --release --bin tof_range       # live 8×8 ranging over RTT
 cargo run --release --bin thermal_probe   # live 8×8 thermal over RTT
 ```
@@ -103,6 +107,7 @@ The firmware is a library (`src/lib.rs`, drivers in `src/vl53l5cx/` and
 
 | Program | Purpose |
 |---------|---------|
+| `fused_stream` | Both sensors on one bus, paired at 5 Hz — the dataset format |
 | `tof_range` | Live VL53L5CX ranging — the Phase 1 checkpoint |
 | `thermal_probe` | Live AMG8833 thermal frames, banded against the frame median |
 | `tof_probe` | First light through the FFI: ULD `is_alive` and `init` |
@@ -116,10 +121,14 @@ together they are a reusable bring-up kit for this board.
 
 ### Heatmap viewer
 
-[`tools/heatmap_viewer.py`](tools/heatmap_viewer.py) turns either stream into
-a live heatmap and can record labelled frames to CSV for training:
+[`tools/heatmap_viewer.py`](tools/heatmap_viewer.py) turns any of the streams
+into a live heatmap and can record labelled frames to CSV for training. With
+`fused_stream` it shows both sensors side by side and records one row per
+pair: raw ToF distance, ToF status and temperature, 64 of each.
 
 ```bash
+cargo run --release --bin fused_stream \
+    | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
 cargo run --release --bin tof_range | python3 ../tools/heatmap_viewer.py
 cargo run --release --bin thermal_probe \
     | python3 ../tools/heatmap_viewer.py --record session.csv --label empty
@@ -144,12 +153,13 @@ details the phases).
 | 8 | Published | |
 
 **Working now:** Embassy firmware at 160 MHz; the VL53L5CX ULD linked through
-FFI and ranging live; the AMG8833 driver in safe Rust; both sensors on a rigid
-rig at a derived 15° tilt; the host-side viewer and CSV recorder.
+FFI and ranging live; the AMG8833 driver in safe Rust; both grids in one world
+frame and registered against each other; the rig re-aimed at the desk, where
+both sensors clearly separate a seated person from an empty chair; a paired
+two-sensor stream at 5 Hz; the host-side viewer and CSV recorder.
 
-**Next:** both grids are now in one world frame and registered against each
-other. Re-aim the rig after its remount, stream both grids together, and tag
-`phase1-bringup`.
+**Next:** mark the chair position, measure the mount angle, run a ten-minute
+thermal soak, then tag `phase1-bringup`.
 The working list is [`TODO.md`](TODO.md).
 
 ## Documentation
