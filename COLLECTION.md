@@ -71,7 +71,8 @@ gzip ../sessions/2026-11-23_01_empty-out.csv     # after the session
 - **Start, then get into position.** Discard the first ~15 s when training:
   it contains you walking out or sitting down. Frame 1 is always all-invalid.
 - **Watch stderr.** It prints `mount tilt … at session start`. A
-  `WARNING: mount tilt moved` line means the rig was knocked mid-session —
+  `WARNING: mount tilt moved` line means the rig moved and *stayed* moved
+  (a 5-second median, so footsteps shaking the boom don't trigger it) —
   discard everything from that frame on.
 
 ## Vary the chair on purpose
@@ -106,3 +107,8 @@ Each of these, if it differs between classes, becomes what the model learns:
 The webcam on the monitor is aimed at the chair and host-timestamped; run it
 alongside a session when a label is in any doubt. Not needed for clean
 single-class sessions.
+
+**Required for walking-past sessions.** A person walking past is in view only
+part of the time — about half the frames in session 12 show an empty room.
+A session-level `present` label is wrong for those frames, so walking
+sessions need per-frame labels, and the video is where they come from.

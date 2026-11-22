@@ -69,6 +69,7 @@ import csv
 import re
 import sys
 from dataclasses import dataclass
+import statistics
 import time
 from typing import Iterator, Optional, TextIO
 
@@ -105,9 +106,13 @@ _DIE = re.compile(r"\bdie\s+(-?\d+)")
 # Mount angle from the on-board IMU, on the tof header; "tilt n/a" if absent.
 _TILT = re.compile(r"\btilt\s+(-?[\d.]+)\s*deg,\s*roll\s+(-?[\d.]+)\s*deg")
 
-# How far the mount may move from the session's first reading before the
-# viewer says so. Single-sample noise is ~0.3 degrees; a knock is more.
+# How far the mount may move before the viewer says so, and over how many
+# frames that is judged. Both sides of the comparison are medians of
+# TILT_WINDOW samples (5 s at 5 Hz): footsteps shake the boom by up to ~1.5
+# degrees for a frame or two, which a median ignores, while a knock *stays*
+# moved and pulls the median with it. Measured 2026-11-22, session 12.
 TILT_ALARM_DEG = 1.0
+TILT_WINDOW = 25
 
 # ULD target_status values that mean "this distance is a measurement". Must
 # match `vl53l5cx::is_valid` in the firmware.
@@ -730,6 +735,7 @@ def main() -> int:
     view = None
     recorder = None
     frames = 0
+    tilt_recent: list[float] = []
     tilt_start: Optional[float] = None
     tilt_alarmed = False
 
@@ -738,24 +744,28 @@ def main() -> int:
             frames += 1
 
             if isinstance(frame, FusedFrame):
-                # Mount drift: compare against this session's first reading.
+                # Mount drift: rolling median against the session's opening
+                # median, so vibration passes and a real move doesn't.
                 if frame.tilt_deg is not None:
-                    if tilt_start is None:
-                        tilt_start = frame.tilt_deg
-                        print(f"mount tilt {tilt_start:.1f} deg at session start",
-                              file=sys.stderr)
-                    moved = abs(frame.tilt_deg - tilt_start)
-                    if moved > TILT_ALARM_DEG and not tilt_alarmed:
-                        print(
-                            f"WARNING: mount tilt moved {moved:.1f} deg at frame "
-                            f"{frame.number} ({tilt_start:.1f} -> "
-                            f"{frame.tilt_deg:.1f}). The rig has been knocked; "
-                            "frames from here may not match the rest.",
-                            file=sys.stderr,
-                        )
-                        tilt_alarmed = True
-                    elif moved <= TILT_ALARM_DEG / 2:
-                        tilt_alarmed = False
+                    tilt_recent = (tilt_recent + [frame.tilt_deg])[-TILT_WINDOW:]
+                    if len(tilt_recent) == TILT_WINDOW:
+                        now = statistics.median(tilt_recent)
+                        if tilt_start is None:
+                            tilt_start = now
+                            print(f"mount tilt {tilt_start:.1f} deg at session start",
+                                  file=sys.stderr)
+                        moved = abs(now - tilt_start)
+                        if moved > TILT_ALARM_DEG and not tilt_alarmed:
+                            print(
+                                f"WARNING: mount tilt moved {moved:.1f} deg by frame "
+                                f"{frame.number} ({tilt_start:.1f} -> {now:.1f}, "
+                                f"{TILT_WINDOW}-frame median). The rig has moved; "
+                                "frames from about here may not match the rest.",
+                                file=sys.stderr,
+                            )
+                            tilt_alarmed = True
+                        elif moved <= TILT_ALARM_DEG / 2:
+                            tilt_alarmed = False
                 if recorder is None and args.record:
                     recorder = FusedCsvRecorder(args.record, args.label)
                     print(

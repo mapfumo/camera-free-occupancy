@@ -129,6 +129,16 @@ Ordered by when it matters, not by size.
 
 ## Before Gate 2 data collection
 
+- [ ] **Per-frame labels for walking-past sessions — settle before Gate 3.**
+      Session 12 (walking past) has a person in view in only ~54% of
+      frames: 21 passes of 0.6–25 s with empty room between. Labelled
+      `present` wholesale, the gaps would teach the model that an empty
+      room is sometimes `present`. Future walking sessions record the webcam
+      alongside (COLLECTION.md, "Ground truth"); session 12 gets per-frame
+      labels before training, or only its in-view stretches are used. Not a
+      detection heuristic — labelling with a hand-made rule just teaches the
+      model the rule.
+
 The procedure itself is [`COLLECTION.md`](COLLECTION.md). The items below
 are where its rules came from.
 

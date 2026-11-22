@@ -1296,6 +1296,27 @@ the same scene to this rig, and 02's label is right whatever happened.
 Session 04's discarded first minutes showed the seat effect again: warmest
 zone +1.44 °C at minute 0, back to the room's +0.75 °C by minute 3.
 
+### Footsteps shake the boom; walking past is half empty — 2026-11-22
+
+Session 12 (walking past, both sides) showed two things.
+
+**Vibration.** Single-frame tilt readings swung 48.05–51.27° while someone
+walked past; every 15 s median stayed at 49.78–49.86°, and `tilt_check`
+afterwards read 49.86° exactly. Footsteps shake the floor and the board
+wobbles on its long boom for a frame or two. The viewer's drift warning
+compared single samples, so it would have fired and the procedure would have
+discarded a good session. It now compares a 25-frame (5 s) rolling median
+against the session's opening median: session 12 no longer warns, a
+simulated 2.2° knock is caught 12 frames (2.4 s) after it happens, and a
+quiet session stays silent. The wobble is at most ~1.5°, about a quarter of
+a ToF zone — not worth correcting in the data.
+
+**Coverage.** A person was in view in only ~54% of frames: 21 passes, each
+0.6–25 s, with the thermal centroid crossing from column 7 to column 1 and
+back. The rest is empty room under a `present` label. Session labels work
+for sitting and standing; for walking they need per-frame labels from the
+webcam. Recorded as a Gate 3 prerequisite in TODO.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at
