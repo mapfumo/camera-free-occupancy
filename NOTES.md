@@ -1287,6 +1287,12 @@ a black leather chair 50 cm back returns nothing to the ToF — plausible,
 given the empty chair back already returns nothing at its marked position.
 Both are correctly `empty`; the chair state is metadata, so 02 stands.
 
+**Settled by session 06**, a deliberate redo of `out` (chair 50 cm back,
+confirmed in view): closest match is `away` (6 zones), then 02 (11), against
+12–20 for `marked` / `in` / `turned`. **A chair 50 cm back is invisible to
+the ToF** — dark leather at ~1.5 m returns nothing — so `out` and `away` are
+the same scene to this rig, and 02's label is right whatever happened.
+
 Session 04's discarded first minutes showed the seat effect again: warmest
 zone +1.44 °C at minute 0, back to the room's +0.75 °C by minute 3.
 
