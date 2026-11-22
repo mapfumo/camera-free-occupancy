@@ -134,10 +134,11 @@ Ordered by when it matters, not by size.
       after anyone has sat in the chair. After a 10.6-minute sit the seat
       zone reached the noise floor (+0.25 °C) at 7 minutes; 10 gives margin
       for longer sits. See NOTES, "Settling time after sitting".
-- [ ] **Mark the chair's rotation, not just its position.** Returning it to
-      the floor mark changed ~5 ToF zones beyond noise, mostly at the chair's
-      edges — the swivel differs. A tape line along one base leg or the seat
-      edge would fix it.
+- [x] ~~Mark the chair's rotation, not just its position.~~ Done
+      2026-11-22: tape along one base leg, plus a seat-edge mark lined up
+      with a partner mark. Returning the chair is now: base on the spot, leg
+      on its tape, seat marks aligned. (Before this, a return changed ~5 ToF
+      zones beyond noise.)
 - [ ] **Site the zone so subjects have depth behind them.** Measured
       2026-09-26: a person at 180 cm standing against a wall that reads
       1.71-1.98 m is *invisible* to the ToF — ≤5 cm of shift, inside the
