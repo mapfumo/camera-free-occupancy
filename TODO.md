@@ -51,14 +51,12 @@ Ordered by when it matters, not by size.
       0 on your left, seen from behind. Verified by a live sweep in the viewer,
       both axes. September's "vertically inverted" was wrong; see NOTES,
       "AMG8833 orientation — corrected".
-- [ ] **START HERE — establish the ToF orientation and check
-      registration.** The AMG is now settled as identity. The only ToF
-      evidence (A3 against the chest, r0 nearer than r1) says its row 0 is
-      the *top* too — so the mirror-image worry may be gone, but that is one
-      unconfirmed data point from before this morning's remount. If the grids
-      did disagree, Gate 3 would concatenate two opposed views of the scene:
-      recoverable by a dense net at the cost of capacity, actively wrong for
-      anything convolutional. Settle it before recording a single frame.
+- [x] ~~Establish the ToF orientation and check registration.~~ Done
+      2026-11-22. ToF is `flip_cols` only — raw row 0 is the top, raw column
+      0 is on the right, matching UM2884 §2.2. Registration checked with a
+      mug against a card held to one side: both sensors put it in columns
+      0–2. See NOTES, "ToF orientation and registration". The procedure
+      below is kept for the next remount.
       **Procedure** (world frame and mechanism in
       `firmware/src/orientation.rs`). Run `tof_range` into the heatmap viewer,
       stand *behind* the sensor's line of sight to judge left/right, and move
@@ -69,9 +67,15 @@ Ordered by when it matters, not by size.
       3. Target moved to *your* left (seen from behind) heads toward screen
          **right** → `flip_cols: true`.
       4. Set the fields in `vl53l5cx::ORIENTATION`, reflash, confirm the
-         blob now moves with the target, and delete the UNVERIFIED note.
+         blob now moves with the target.
       5. Run `thermal_probe` with the same target: both blobs should land on
          the same cells. That is the registration check.
+      **Left/right is the step that goes wrong.** Holding a target out in
+      front means facing the sensor, which mirrors "your left". On
+      2026-11-22 it was reported reversed both with and without the flip.
+      Skip step 3's judgement entirely: hold a dual-modality target clearly
+      to one side and compare which columns each sensor puts it in — the
+      verified AMG becomes the reference, and nobody's viewpoint matters.
       For reference, UM2884 §2.2 says the lens flips both ways (zone 0 sees
       the scene's top right); how the breakout is mounted decides the rest.
 - [x] ~~Correct orientation in the driver, not the viewer.~~ Mechanism in

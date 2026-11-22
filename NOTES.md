@@ -950,6 +950,49 @@ Both need redoing in the new pose.
 - The ToF's only evidence also says row 0 is the top, so the feared
   mirror-image registration problem may not exist. Still unconfirmed.
 
+### ToF orientation and registration — 2026-11-22
+
+> **VL53L5CX: `flip_cols` only. Raw row 0 is the top of the view; raw
+> column 0 is on the right, seen from behind. Both grids now share the world
+> frame, and registration is checked.**
+
+**Vertical and transpose** came from a card swept at ~1.2 m in the viewer:
+raising it moved the blob up a column, unflipped. Easy and unambiguous.
+
+**Horizontal could not be settled by watching.** Reported reversed with the
+raw grid, then reversed again with `flip_cols` — after confirming the board
+was running the flipped build, and checking that `tof_range` applies the flip
+to distance and status before printing. Both cannot be true; the observer's
+left was the variable. Holding a target out in front of a sensor means facing
+it, and "your left" is then its right.
+
+**Settled by registration instead,** which needs no viewpoint at all. A hot
+mug pressed against a card, held clearly to one side at ~0.85 m, captured
+back to back:
+
+- ToF: an object at 0.80–0.99 m in **columns 0–2**, all rows.
+- Thermal: up to +5 °C over a 24 °C median in **columns 0–2**, all rows;
+  columns 3–7 flat.
+
+The AMG grid was already verified, so it is the reference: the ToF agrees with
+it *with* the flip, and would put the target in columns 5–7 without it. Both
+blobs run the full height because the holder's arm and body are in frame too;
+that does not touch the column answer.
+
+The result also matches UM2884 §2.2 (zone 0 sees the scene's **top right**),
+so datasheet and bench agree, and the 2026-09-26 A3-sheet hint (row 0 is the
+top) was right.
+
+**Lesson, now in the TODO procedure:** don't judge left/right by eye. Compare
+the two sensors against one dual-modality target. Once one sensor is known,
+the other is measured against it, and nobody's viewpoint enters into it.
+
+**Not yet done:** cell-for-cell agreement. The ToF field is ~45° against the
+GridEYE's ~60°, so their cells differ in size, and the two breakouts sit a few
+centimetres apart. Same columns at 0.85 m is the pass for direction; how
+closely the grids align across the field needs a target stepped across it,
+and matters for Gate 3's input layout.
+
 ## Vendor driver
 
 VL53L5CX ULD **2.0.1** is on disk at

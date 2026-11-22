@@ -25,22 +25,20 @@ use crate::orientation::Orientation;
 /// [`crate::orientation`]). Apply it to every per-zone array taken out of
 /// `VL53L5CX_ResultsData` — distance *and* status, or they stop lining up.
 ///
-/// **UNVERIFIED — identity until the bench says otherwise.** Identity means
-/// output is unchanged from before this constant existed.
+/// Established on hardware 2026-11-22. Vertical by sweeping a flat card in
+/// the heatmap viewer: no transpose, raw row 0 already the top. Horizontal by
+/// registration against the (verified) AMG8833 — a mug on a card held to one
+/// side landed in columns 0–2 on both sensors only with the column flip, so
+/// raw column 0 is on the *right* seen from behind. Columns flip, rows do not.
+/// Judging left/right by eye gave contradictory answers; see NOTES.md.
 ///
-/// What is known so far, none of it sufficient on its own:
+/// Agrees with UM2884 §2.2, which says zone 0 sees the *top right* of the
+/// scene: two independent sources, same answer. The 2026-09-26 A3-sheet hint
+/// (raw row 0 nearer, so the top) also agrees.
 ///
-/// - UM2884 §2.2: the lens flips the image both ways, so zone 0 (bottom-left
-///   of the SPAD array) sees the *top right* of the scene. Which way the
-///   breakout sits on the rig is not something ST can know, and the portrait
-///   mount may add a 90° turn (a transpose).
-/// - 2026-09-26: an A3 sheet held flat against the chest read nearer in row 0
-///   than row 1, which suggests raw row 0 is the top. One observation, made in
-///   a cluttered scene.
-///
-/// Settle it with the dual-modality target (TODO.md) and set the three
-/// fields from what moves where.
-pub const ORIENTATION: Orientation = Orientation::IDENTITY;
+/// Tied to the physical mount. Re-establish it if the breakout is ever
+/// re-seated or the board rotated.
+pub const ORIENTATION: Orientation = Orientation { transpose: false, flip_rows: false, flip_cols: true };
 
 /// Default 7-bit I2C address of the VL53L5CX.
 ///
