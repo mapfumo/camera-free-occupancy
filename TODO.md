@@ -366,7 +366,10 @@ reason for not being now.
       system is finished and defensible**, when the comparison has a working
       baseline to compare against and the argument lands as "I built both"
       rather than "I hedged".
-- [ ] **LoRaWAN backhaul in embedded C++17 (was Satellite B).** Deferred
+- [ ] **LoRaWAN backhaul — reinstated 2026-11-24 as Satellite B**, after
+      Gate 5 (roadmap, "Satellite B sub-gates", B1–B2), framed as the
+      deployment story and business case rather than a C++ exercise;
+      language decided at B1. History: deferred
       2026-09-26. An STM32WL55JC1 node carrying the occupancy result to the
       RAK7268V2 over AU915, with the "pull the Ethernet cable and the data
       keeps arriving" demo. Cut because the AU915 config is meant to be
