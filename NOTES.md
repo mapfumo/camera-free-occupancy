@@ -1691,6 +1691,12 @@ the model being unstable. One seed produced 3 false "occupied" frames across
 the 40 empty sessions — 0.01%, and single frames that Gate 4's debounce
 absorbs.
 
+**C model checked on every frame.** `ml/st_check.sh --all`: the generated
+C model (compiled on the host) against the ONNX model on all 57,516
+labelled frames — 100% same class, rmse 1.3e-6
+(`ml/results/stm32u5_validate_all_report.txt`). The 99.1% belongs to the C
+model too. On-target validation and timing are Gate 4.
+
 **Gate 3 exit met:** confusion matrix on held-out data — six rounds the
 model never trained on, three seeds. The model that ships is seed 0 trained
 on all 70 sessions (`ml/results/occupancy_cnn.onnx`). Tagged `phase3-model`.

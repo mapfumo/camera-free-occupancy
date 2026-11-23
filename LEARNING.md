@@ -21,8 +21,10 @@ that happens, fix it here rather than starting a new document.
 7. [The C interop story](#7-the-c-interop-story)
 8. [The AMG8833: the same job in pure Rust](#8-the-amg8833-the-same-job-in-pure-rust)
 9. [The diagnostic tools](#9-the-diagnostic-tools)
-10. [Problems we hit, and what fixed them](#10-problems-we-hit-and-what-fixed-them)
-11. [Glossary](#11-glossary)
+10. [Building the dataset (Gate 2)](#10-building-the-dataset-gate-2)
+11. [From data to a model on the chip (Gate 3)](#11-from-data-to-a-model-on-the-chip-gate-3)
+12. [Problems we hit, and what fixed them](#12-problems-we-hit-and-what-fixed-them)
+13. [Glossary](#13-glossary)
 
 ---
 
@@ -694,7 +696,271 @@ something other than what it appears to.
 
 ---
 
-## 10. Problems we hit, and what fixed them
+## 10. Building the dataset (Gate 2)
+
+A model can only learn what the data shows it, and it will happily learn the
+wrong thing if the data makes that easy. Most of Gate 2 was about making the
+wrong things hard to learn.
+
+### Three classes, set by where the sensor points
+
+The board looks down at the chair at 49.9°. From there a standing person's
+head is out of view, so "standing" and "walking past" look the same. That
+gives three classes, not four:
+
+| Class | Meaning |
+|-------|---------|
+| `empty` | Nobody in view |
+| `seated` | One person in the chair |
+| `present` | In view but not seated — standing, reaching, walking past |
+
+### Sessions, rounds and labels
+
+A **session** is one recording of 2.5–3.5 minutes at 5 frames a second, all
+one situation: say, "chair pushed in, nobody there". A **round** is twelve
+sessions recorded back to back in one daypart — five empty chair positions,
+three sitting postures, three ways of being present, and a closing empty.
+Six rounds over three days (`am`, `pm`, `eve`, each on two days) make the 70
+sessions.
+
+Usually the whole session has one label. Walking past is the exception — a
+person is in view only part of the time — so those sessions were filmed with
+a webcam and labelled frame by frame with `tools/label_frames.py`. The video
+never leaves the PC; only the labels are committed.
+
+### The rules each came from a measurement
+
+- **Wait 10 minutes before recording `empty` after anyone sat down.** A seat
+  stays warm for about 7 minutes. Without the wait, the model learns "warm
+  seat = nobody here".
+- **Move the chair on purpose.** Five chair states, so the model learns a
+  chair's position is not a person.
+- **Check the mount angle every frame.** The board's accelerometer logs tilt;
+  if the rig gets knocked, the data changes meaning.
+- **Watch what lines up with the label.** If every `empty` session happened in
+  daylight and every `seated` one after dark, "dark" would predict "seated".
+  The evening rounds were arranged so `empty` covers twilight *and* darkness.
+
+### What the model actually sees: the encoding
+
+Each frame becomes three 8×8 grids (`tools/encode.py`):
+
+1. **ToF valid mask** — 1 where the distance reading is trustworthy (status 5
+   or 9, and not 0 mm), else 0.
+2. **ToF distance** — the valid distance, clipped to 2 m and scaled to 0–1.
+   Where the reading is invalid, it's filled with 1.0 ("far").
+3. **Thermal excess** — each pixel's temperature minus the frame's median, so
+   a warm room and a cold room look alike and only *differences* matter.
+
+Why a separate mask: "nothing came back" is real information here — the black
+leather chair back returns nothing at all — but it must never look like "very
+close". And one specific trap: about 1,300 readings claimed to be valid with
+a distance of exactly 0 mm, almost all in one corner zone and almost all in
+`empty` sessions. Fed in raw, that's a shortcut: "corner reads zero, so the
+room is empty". The mask removes it.
+
+The **Gate 2 exit test** was looking at the average grid per class
+(`tools/class_look.py`): if a person can't see the difference, a model won't
+find a real one.
+
+---
+
+## 11. From data to a model on the chip (Gate 3)
+
+### What a model adds over a rule
+
+Gate 2 already had a hand-written rule: "someone is here if ≥3 ToF zones are
+nearer than 620 mm, or ≥2 thermal zones are 1.5 °C warmer than the room". It
+gets empty-vs-occupied right 99.4% of the time. But it can't say *seated* or
+*present* — leaning back puts your body in the top rows like standing does,
+and no simple threshold untangles that. A model learns those combinations
+from examples instead of being told them.
+
+### Training and testing — and the trap
+
+**Training** shows the model frames with their labels and adjusts its
+internal numbers (the **weights**) so it gets more of them right. **Testing**
+asks it about frames it has never seen. Only the test score means anything:
+any model can memorise its training data.
+
+The trap: frames 0.2 s apart are nearly identical. If you shuffle all 57,516
+frames and hold out a random 20%, almost every test frame has a near-twin in
+training. The model looks brilliant and has learned nothing about new
+situations.
+
+So the test unit here is a **round** — a whole daypart on a whole day:
+
+```
+round held out      trained on the other five
+2026-11-22 pm   →   22 eve, 23 am, 23 pm, 23 eve, 24 am
+2026-11-22 eve  →   22 pm,  23 am, 23 pm, 23 eve, 24 am
+   …six times, one per round…
+```
+
+This is **leave-one-round-out cross-validation** (`ml/dataset.py`). Every
+score is on a day and lighting the model never saw. The six test results are
+added together into one confusion matrix.
+
+### Baselines first
+
+Before building anything clever, score something simple
+(`ml/baseline.py`). If a simple method already wins, the clever one isn't
+worth its cost.
+
+- The Gate 2 rule: 99.4%, but empty-vs-occupied only.
+- **Logistic regression** — the simplest real classifier: one weighted sum of
+  all 192 inputs per class. **98.2%.** Its weakness: 500 `present` frames
+  called `seated`.
+
+### The network, layer by layer
+
+A small **convolutional neural network** (CNN) — `ml/train.py`. A
+convolution slides a 3×3 window over the grid and learns patterns like "warm
+blob next to near returns", wherever they appear.
+
+```
+input              3 × 8 × 8      mask, distance, thermal
+conv 3×3, 16       16 × 8 × 8     16 small pattern detectors      448 weights
+ReLU                              keep positives, zero negatives
+conv 3×3, 16       16 × 8 × 8     patterns of patterns          2,320 weights
+ReLU
+max-pool 2×2       16 × 4 × 4     keep the strongest per 2×2 block
+flatten            256
+dense 32           32             combine everything            8,224 weights
+ReLU
+dense 3            3              one score per class              99 weights
+                                                        total  11,091
+```
+
+(Each conv's count is inputs × outputs × 9 + one bias per output: 3×16×9+16
+= 448. Each dense layer's is inputs × outputs + outputs: 256×32+32 = 8,224.)
+
+The three output scores are **logits**; the biggest one is the answer.
+
+One deliberate choice: many image models end with "global pooling", which
+throws away *where* things are. Here *where* is the whole point — warmth in
+the bottom rows means seated, in the top rows means standing — so the layout
+is kept all the way to the dense layers. For the same reason the training
+images are never flipped or shifted.
+
+### How it trains
+
+- **Loss** — a number saying how wrong the model is on a batch of frames
+  (cross-entropy). Training nudges every weight to make it smaller
+  (**Adam** is the nudging method, the **learning rate** how big each nudge is).
+- **Epoch** — one pass through all the training frames. 15 here.
+- **Class weights** — there are twice as many `empty` frames as `present`, so
+  mistakes on `present` count double. Otherwise the model can score well by
+  favouring `empty`.
+- **Seed** — the random starting values. Different seeds give slightly
+  different models; checking three shows the result isn't luck.
+- **Fixed in advance.** None of these were tuned by peeking at the test round
+  — tuning on the test set is just a slower way of cheating.
+
+Each fold trains in about 7 seconds on the CPU. A model this small doesn't
+need the GPU.
+
+### Reading a confusion matrix
+
+Rows are the truth, columns the model's answer. The diagonal is correct.
+
+```
+              empty    seated   present    recall
+empty         27131         0       250     99.1%
+seated            1     16701        75     99.5%
+present         123        80     13155     98.5%
+precision     99.5%     99.5%     97.6%
+```
+
+- **Recall** (per row): of all real `present` frames, how many were caught.
+- **Precision** (per column): of everything called `present`, how much really
+  was.
+- **Accuracy**: all correct ÷ all frames — 99.1%.
+- **Balanced accuracy**: the average of the three recalls, so a big class
+  can't hide a weak small one — 99.0%.
+
+The matrix also says *where* to look. Here: zero empty-room frames called
+occupied across the 40 empty sessions, and nearly all the errors at the
+edges of walking passes, where the label itself is a judgement call.
+
+### From PyTorch to C on the STM32
+
+The model is trained in **PyTorch** on the PC. The chip can't run Python, so:
+
+```
+PyTorch model ──export──▶ ONNX file ──ST Edge AI──▶ C code + weight array
+  (training)              (layers +                   (runs on the U585)
+                           11,091 weights)
+```
+
+1. **ONNX** is a standard file format for trained networks: the list of
+   layers and the learned weights, nothing else. `train.py --final` writes
+   `ml/results/occupancy_cnn.onnx`.
+2. **ST Edge AI Core** (`stedgeai`, installed on this PC at
+   `/opt/ST/STEdgeAI/4.0/`) reads the ONNX file and generates C: the weights
+   as a constant array in flash, and the network as calls into ST's
+   pre-optimised Cortex-M33 library (its own convolution, ReLU, pooling and
+   dense routines). No PyTorch code goes to the chip — the same maths, the
+   same weights, computed by ST's code.
+
+**STM32Cube AI Studio** is the graphical front end to the same engine. We used
+the command line instead: it's scriptable and repeatable (`ml/st_check.sh`).
+
+#### What `analyze` says
+
+| | Value | Meaning |
+|---|---:|---|
+| Weights | 43.3 KiB (flash) | the 11,091 numbers × 4 bytes each |
+| Runtime | ~6 KiB (flash) | ST's library code |
+| Activations | 5.75 KiB (RAM) | scratch space for the layer outputs during one inference |
+| MACC | 186,787 | multiply-accumulates per inference — the work done |
+
+Out of 2 MiB flash and 786 KiB RAM. At 160 MHz that's a few milliseconds per
+inference, and it runs once every 1–2 seconds.
+
+**Quantisation** — storing weights as 8-bit integers instead of 32-bit floats
+— would cut the 43 KiB to about 11 KiB and speed it up, at some risk to
+accuracy. Not needed here, so not done.
+
+#### What `validate` proves
+
+`validate` compiles the generated C **on the PC**, feeds it real frames, and
+compares its outputs with the original model's. On all 57,516 frames: **same
+class every time**, output differences around 0.0000013 — rounding from
+doing the same additions in a different order. So the 99.1% belongs to the C
+model too. (ST can also run this check on the board itself; that, and
+measuring the real speed, is Gate 4.)
+
+### The trap still ahead
+
+The C model is only as good as what it's fed. On the chip, Rust code has to
+turn each raw frame into exactly the same three grids `tools/encode.py`
+makes — same validity rule, same 2 m clip, same "far" fill, same median. A
+small mismatch won't crash anything; it will just quietly make the model
+worse. Gate 4's safeguard: log raw frames and the firmware's encoding of them
+side by side, and check they match the Python encoding value for value.
+
+### Doing it again
+
+```bash
+python3 -m venv ml/.venv
+ml/.venv/bin/pip install torch scikit-learn onnx onnxruntime \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+
+python3 ml/dataset.py                        # what's in each round
+ml/.venv/bin/python ml/baseline.py           # the rule + logistic regression
+ml/.venv/bin/python ml/train.py --seeds 3    # CNN, leave-one-round-out
+ml/.venv/bin/python ml/train.py --final      # train on everything, export ONNX
+ml/st_check.sh                               # analyze + validate, 300 frames
+ml/st_check.sh --all                         # validate on every frame
+```
+
+Results land in `ml/results/`. The numbers and the reasoning behind every
+choice are in `NOTES.md`, "Phase 3 — Model".
+
+---
+
+## 12. Problems we hit, and what fixed them
 
 The genuinely instructive part. These are real, in order, with the reasoning
 that eventually worked.
@@ -804,9 +1070,74 @@ plausible-looking **negative temperature**.
 **The fix:** do the arithmetic in 32 bits and saturate. Garbage now looks like
 garbage instead of masquerading as data.
 
+### 9. The bus that wouldn't let go
+
+**Cost: three failed starts and one empty 13-minute recording.**
+
+Every so often a recording wouldn't start: the firmware looked for the
+thermal sensor, found nothing, and stopped. A rescan a minute later always
+found it. The first guess was a loose wire — but everything is soldered on
+the shield.
+
+**The cause was how each recording ends.** A timer kills the PC-side
+program, which halts the chip mid-whatever — sometimes halfway through
+reading a byte from a sensor. On I2C the sensor drives the data line (SDA)
+while it sends; halted mid-byte, it keeps holding SDA low, waiting for clock
+pulses that never come. The next start sees a busy bus and gives up.
+
+**The fix** (`firmware/src/i2c_recovery.rs`): before the I2C hardware takes
+the pins, toggle the clock line by hand nine times so the sensor finishes its
+byte and lets go, then send a STOP. Retry the probe up to three times. It
+logs only when it acts — and the next morning it caught a stuck bus in the
+act, confirming the theory.
+
+**The lesson, twice over:** the first version stopped clocking as soon as SDA
+read high. But a sensor mid-byte can put a 1 bit on the line and then pull it
+low again for the next bit. "The line went high" is not the same as "the
+sensor let go" — always send all nine pulses.
+
 ---
 
-## 11. Glossary
+## 13. Glossary
+
+**Activations** — the intermediate outputs of each layer during one
+inference; they need RAM while the model runs.
+
+**Baseline** — a deliberately simple method scored first, so a complex one has
+to beat something.
+
+**Bus clear** — toggling the I2C clock by hand to make a stuck device release
+the data line.
+
+**Confusion matrix** — table of true class (rows) against predicted class
+(columns).
+
+**Convolution (conv)** — a small window of learned weights slid across a grid,
+detecting the same pattern anywhere in it.
+
+**Cross-validation** — training and testing several times, holding out a
+different part each time.
+
+**Epoch** — one full pass of training over all the training data.
+
+**Logits** — a model's raw per-class scores; the largest is the prediction.
+
+**MACC** — multiply-accumulate operations; the standard measure of how much
+work one inference takes.
+
+**ONNX** — a standard file format for trained neural networks: layers plus
+weights.
+
+**Precision / recall** — of everything called class X, how much really was
+(precision); of everything really X, how much was caught (recall).
+
+**Quantisation** — storing a model's numbers as small integers (e.g. 8-bit)
+instead of 32-bit floats, to save memory and time.
+
+**ST Edge AI Core (`stedgeai`)** — ST's tool that turns a trained model into
+optimised C for STM32 chips; STM32Cube AI Studio is its graphical front end.
+
+**Weights** — the numbers a model learns during training.
 
 **Bare metal** — no operating system. Your program is the only thing running.
 
