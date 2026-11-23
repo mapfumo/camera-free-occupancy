@@ -176,9 +176,9 @@ Ordered by when it matters, not by size.
       98.2%; 0 false "occupied" on 24,772 empty-session frames. Fits the
       U585 at ~49 KiB flash / 5.75 KiB RAM; C model validated against
       PyTorch. NOTES, "First model, scored on unseen rounds".
-- [ ] **Decide whether Gate 3 is closed** or worth one more pass first —
-      candidates: a few-frame temporal input for pass edges; seed variance
-      (rerun CV with 3 seeds to show the 99.1% isn't one lucky init).
+- [x] ~~Seed check, then close Gate 3.~~ **Closed 2026-11-24**, tagged
+      `phase3-model`: 99.08–99.10% over three seeds. Temporal input not
+      pursued — Gate 4's debounce handles the pass-edge frames.
 - [ ] Generate the C code (`stedgeai generate`) into `firmware/vendor/ai_model/`
       — start of Gate 4.
 

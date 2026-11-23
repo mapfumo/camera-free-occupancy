@@ -1671,3 +1671,26 @@ frames — 100% same class, rmse 1.3e-6. Quantising to int8 would save ~33 KiB
 of flash nobody needs; not worth the accuracy risk. Latency on the board is a
 Gate 4 measurement (expected well under 10 ms at 160 MHz; inference runs every
 1–2 s).
+
+### Seed check; Gate 3 closes — 2026-11-24
+
+The same leave-one-round-out run with three training seeds (`ml/train.py
+--seeds 3`, `ml/results/cnn_cv_seeds.txt`):
+
+| seed | accuracy | balanced | present → seated | empty → present | empty-session frames called occupied |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 99.08% | 99.04% | 80 | 250 | 0 / 24,772 |
+| 1 | 99.10% | 99.11% | 44 | 292 | 3 / 24,772 |
+| 2 | 99.09% | 99.06% | 43 | 244 | 0 / 24,772 |
+
+The headline number is not a lucky initialisation: **99.1% ± 0.01**,
+balanced 99.0–99.1%. What moves between seeds is *which side* of the
+label boundary the pass-edge frames fall on (present→seated 43–80,
+empty→present 244–292), which is the boundary being genuinely ambiguous, not
+the model being unstable. One seed produced 3 false "occupied" frames across
+the 40 empty sessions — 0.01%, and single frames that Gate 4's debounce
+absorbs.
+
+**Gate 3 exit met:** confusion matrix on held-out data — six rounds the
+model never trained on, three seeds. The model that ships is seed 0 trained
+on all 70 sessions (`ml/results/occupancy_cnn.onnx`). Tagged `phase3-model`.

@@ -1,0 +1,71 @@
+== CNN, leave-one-round-out, seed 0
+  held out 2026-11-22_eve   accuracy  97.2%   balanced  97.5%   (8 s)
+      2026-11-22_22_present-marked         8.4% wrong of 738
+      2026-11-22_23_present-marked        18.9% wrong of 739
+      2026-11-22_24_present-marked         5.5% wrong of 740
+  held out 2026-11-22_pm    accuracy  99.8%   balanced  99.8%   (7 s)
+  held out 2026-11-23_am    accuracy  99.4%   balanced  99.3%   (7 s)
+  held out 2026-11-23_eve   accuracy  99.3%   balanced  98.9%   (7 s)
+      2026-11-23_34_present-marked         8.8% wrong of 839
+  held out 2026-11-23_pm    accuracy  99.3%   balanced  99.3%   (7 s)
+      2026-11-23_22_present-marked         9.0% wrong of 835
+  held out 2026-11-24_am    accuracy  99.5%   balanced  99.3%   (7 s)
+
+pooled over the six held-out rounds (rows true, columns predicted):
+              empty    seated   present    recall
+empty         27131         0       250     99.1%
+seated            1     16701        75     99.5%
+present         123        80     13155     98.5%
+precision     99.5%     99.5%     97.6%
+accuracy 99.1%   balanced accuracy 99.0%   frames 57516
+
+== CNN, leave-one-round-out, seed 1
+  held out 2026-11-22_eve   accuracy  97.1%   balanced  97.5%   (7 s)
+      2026-11-22_22_present-marked         9.8% wrong of 738
+      2026-11-22_23_present-marked        18.7% wrong of 739
+      2026-11-22_24_present-marked         6.6% wrong of 740
+  held out 2026-11-22_pm    accuracy  99.8%   balanced  99.8%   (7 s)
+  held out 2026-11-23_am    accuracy  99.5%   balanced  99.6%   (7 s)
+  held out 2026-11-23_eve   accuracy  99.3%   balanced  99.0%   (7 s)
+      2026-11-23_34_present-marked         8.6% wrong of 839
+  held out 2026-11-23_pm    accuracy  99.2%   balanced  99.2%   (7 s)
+      2026-11-23_22_present-marked         9.2% wrong of 835
+  held out 2026-11-24_am    accuracy  99.5%   balanced  99.3%   (8 s)
+
+pooled over the six held-out rounds (rows true, columns predicted):
+              empty    seated   present    recall
+empty         27089         0       292     98.9%
+seated            5     16713        59     99.6%
+present         119        44     13195     98.8%
+precision     99.5%     99.7%     97.4%
+accuracy 99.1%   balanced accuracy 99.1%   frames 57516
+
+== CNN, leave-one-round-out, seed 2
+  held out 2026-11-22_eve   accuracy  97.3%   balanced  97.6%   (8 s)
+      2026-11-22_22_present-marked         6.9% wrong of 738
+      2026-11-22_23_present-marked        19.8% wrong of 739
+      2026-11-22_24_present-marked         5.7% wrong of 740
+  held out 2026-11-22_pm    accuracy  99.9%   balanced  99.9%   (7 s)
+  held out 2026-11-23_am    accuracy  99.7%   balanced  99.8%   (8 s)
+  held out 2026-11-23_eve   accuracy  99.3%   balanced  99.0%   (8 s)
+      2026-11-23_34_present-marked         8.7% wrong of 839
+  held out 2026-11-23_pm    accuracy  99.2%   balanced  99.1%   (8 s)
+      2026-11-23_22_present-marked        10.2% wrong of 835
+  held out 2026-11-24_am    accuracy  99.1%   balanced  98.8%   (8 s)
+      2026-11-24_11_present-marked         5.1% wrong of 839
+
+pooled over the six held-out rounds (rows true, columns predicted):
+              empty    seated   present    recall
+empty         27137         0       244     99.1%
+seated            0     16684        93     99.4%
+present         141        43     13174     98.6%
+precision     99.5%     99.7%     97.5%
+accuracy 99.1%   balanced accuracy 99.1%   frames 57516
+
+== 3 seeds, pooled leave-one-round-out
+seed   accuracy  balanced  present->seated  empty->present
+   0     99.08%    99.04%               80             250
+   1     99.10%    99.11%               44             292
+   2     99.09%    99.06%               43             244
+mean     99.09%    99.07%               56             262
+range  99.08%-99.10% accuracy, 99.04%-99.11% balanced

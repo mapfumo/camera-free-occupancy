@@ -79,13 +79,13 @@ def predict(net, X):
         return net(torch.from_numpy(X)).argmax(1).numpy()
 
 
-def cross_validate(d):
+def cross_validate(d, seed=SEED):
     pooled = np.zeros((len(CLASSES), len(CLASSES)), int)
-    lines = ["== CNN, leave-one-round-out"]
+    lines = [f"== CNN, leave-one-round-out, seed {seed}"]
     oof = np.full(len(d["y"]), -1)
     for r, tr, te in rounds(d):
         t0 = time.time()
-        net = fit(d["X"][tr], d["y"][tr])
+        net = fit(d["X"][tr], d["y"][tr], seed=seed)
         pred = predict(net, d["X"][te])
         m = confusion(d["y"][te], pred)
         pooled += m
@@ -101,10 +101,10 @@ def cross_validate(d):
         oof[te] = pred
         print(f"  {r}: {np.trace(m)/m.sum():.1%}", flush=True)
     os.makedirs(os.path.join(HERE, "runs"), exist_ok=True)
-    np.save(os.path.join(HERE, "runs", "cnn_cv_pred.npy"), oof)
+    np.save(os.path.join(HERE, "runs", f"cnn_cv_pred_seed{seed}.npy"), oof)
     lines.append("")
     lines.append(report(pooled, "pooled over the six held-out rounds (rows true, columns predicted):"))
-    return "\n".join(lines)
+    return "\n".join(lines), pooled
 
 
 def export(d):
@@ -128,6 +128,7 @@ def export(d):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--final", action="store_true")
+    ap.add_argument("--seeds", type=int, default=1, help="repeat CV with seeds 0..N-1")
     a = ap.parse_args()
     torch.set_num_threads(8)
     d = load_all()
@@ -136,10 +137,29 @@ def main():
         path, n = export(d)
         print(f"exported {path}  ({n} parameters)")
     else:
-        text = cross_validate(d)
-        print(text)
-        with open(os.path.join(OUT, "cnn_cv.txt"), "w") as f:
-            f.write(text + "\n")
+        texts, stats = [], []
+        for seed in range(a.seeds):
+            text, m = cross_validate(d, seed)
+            print(text)
+            texts.append(text)
+            acc = np.trace(m) / m.sum()
+            bal = np.mean([m[i, i] / m[i].sum() for i in range(len(CLASSES))])
+            stats.append((acc, bal, m[2, 1], m[0, 2]))
+        if a.seeds > 1:
+            s = np.array(stats, float)
+            summary = [f"== {a.seeds} seeds, pooled leave-one-round-out",
+                       "seed   accuracy  balanced  present->seated  empty->present"]
+            summary += [f"{i:4d}   {r[0]:8.2%}  {r[1]:8.2%}  {int(r[2]):15d}  {int(r[3]):14d}"
+                        for i, r in enumerate(s)]
+            summary.append(f"mean   {s[:,0].mean():8.2%}  {s[:,1].mean():8.2%}  "
+                           f"{s[:,2].mean():15.0f}  {s[:,3].mean():14.0f}")
+            summary.append(f"range  {s[:,0].min():.2%}-{s[:,0].max():.2%} accuracy, "
+                           f"{s[:,1].min():.2%}-{s[:,1].max():.2%} balanced")
+            texts.append("\n".join(summary))
+            print(texts[-1])
+        name = "cnn_cv.txt" if a.seeds == 1 else "cnn_cv_seeds.txt"
+        with open(os.path.join(OUT, name), "w") as f:
+            f.write("\n\n".join(texts) + "\n")
 
 
 if __name__ == "__main__":

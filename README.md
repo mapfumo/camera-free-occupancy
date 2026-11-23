@@ -5,10 +5,11 @@ sensor and an 8×8 thermal array are read by an STM32U585, fused into one
 128-value frame, classified on the device, and published into an existing
 BACnet / InfluxDB / Grafana building-monitoring stack.
 
-> **Status: model (Gate 3 of 8).** The dataset is done and tagged
-> `phase2-data`: 70 labelled sessions (57,516 frames) of `empty`, `seated`
-> and `present`, every class in every daypart on two days; the classes
-> separate by eye as heatmaps. There is no
+> **Status: live inference (Gate 4 of 8).** A small CNN (11,091
+> parameters) classifies `empty` / `seated` / `present` at **99.1%** on
+> recording rounds it never trained on, and fits the STM32U585 in ~49 KiB of
+> flash and 5.75 KiB of RAM. Trained on 70 labelled sessions (57,516
+> frames). Not yet running on the device. There is no
 > model or on-device inference yet. See [Status](#status) for exactly what
 > works.
 
@@ -164,6 +165,32 @@ clustered in one corner of the empty sessions — is in
 [`NOTES.md`](NOTES.md) and the
 [write-up](https://www.mapfumo.net/posts/2026/november/camera-free-occupancy-building-the-dataset/).
 
+### Model
+
+[`ml/`](ml/) trains and scores the classifier. Splits are by *round* — one
+daypart on one day — never by frame, so every score is on a day the model
+never saw (leave-one-round-out, six rounds).
+
+| | accuracy | balanced |
+|---|---:|---:|
+| Logistic regression (baseline) | 98.2% | 97.8% |
+| **CNN**, 11,091 parameters, three seeds | **99.1%** | **99.0–99.1%** |
+
+Across the 40 empty-room sessions the CNN calls "occupied" on 0–3 of 24,772
+frames; nearly all remaining errors are at the edges of walking passes. On
+the STM32U585 (ST Edge AI Core 4.0, float32): ~49 KiB flash, 5.75 KiB RAM,
+186,787 MACC per inference; the generated C model matches PyTorch.
+
+```bash
+python3 -m venv ml/.venv && ml/.venv/bin/pip install torch scikit-learn onnx onnxruntime \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+ml/.venv/bin/python ml/baseline.py          # baselines
+ml/.venv/bin/python ml/train.py --seeds 3   # CNN, leave-one-round-out
+ml/.venv/bin/python ml/train.py --final     # train on everything, export ONNX
+```
+
+Details and error analysis: [`NOTES.md`](NOTES.md), "Phase 3 — Model".
+
 ### Heatmap viewer
 
 [`tools/heatmap_viewer.py`](tools/heatmap_viewer.py) turns any of the streams
@@ -190,8 +217,8 @@ details the phases).
 |------|-|-------|
 | 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
 | 2 | Dataset — labelled classes, separable by eye as heatmaps | done — `phase2-data` |
-| 3 | Model — confusion matrix on held-out data | **next** |
-| 4 | Live inference + on-device readout | |
+| 3 | Model — confusion matrix on held-out data | done — `phase3-model` |
+| 4 | Live inference + on-device readout | **next** |
 | 5 | Integrated into BACnet / Grafana | |
 | 6 | Same firmware in C/FreeRTOS, measured against this one | |
 | 7 | Validated over a multi-day real-room run | |
@@ -208,8 +235,9 @@ every daypart; the model input encoding.
 A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
-**Next:** Gate 3 — train in STM32Cube AI Studio and score on held-out
-sessions. The working list is [`TODO.md`](TODO.md).
+**Next:** Gate 4 — generate the C model with ST Edge AI, link it into the
+firmware over FFI, infer every 1–2 s with debounce, and show the result on
+the ILI9341. The working list is [`TODO.md`](TODO.md).
 
 ## Documentation
 
