@@ -9,3 +9,7 @@ sessions/video/
 # Python
 __pycache__/
 *.pyc
+
+# Gate 3 training environment and run outputs (results worth keeping are committed under ml/results/)
+ml/.venv/
+ml/runs/

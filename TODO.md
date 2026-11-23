@@ -169,6 +169,19 @@ Ordered by when it matters, not by size.
       cleanly. Entered from the bottom-left, which fixes its orientation.
 - [x] ~~Tag `phase1-bringup`.~~ Tagged 2026-11-22. Gate 1 closed.
 
+## Gate 3 — Model
+
+- [x] ~~Leave-one-round-out evaluation, baselines, first CNN.~~ 2026-11-24:
+      CNN 99.1% (balanced 99.0%) on unseen rounds vs logistic regression
+      98.2%; 0 false "occupied" on 24,772 empty-session frames. Fits the
+      U585 at ~49 KiB flash / 5.75 KiB RAM; C model validated against
+      PyTorch. NOTES, "First model, scored on unseen rounds".
+- [ ] **Decide whether Gate 3 is closed** or worth one more pass first —
+      candidates: a few-frame temporal input for pass edges; seed variance
+      (rerun CV with 3 seeds to show the 99.1% isn't one lucky init).
+- [ ] Generate the C code (`stedgeai generate`) into `firmware/vendor/ai_model/`
+      — start of Gate 4.
+
 ## Before Gate 2 data collection
 
 - [x] ~~Gate 2 exit check.~~ **Passed 2026-11-24.** 70 sessions,

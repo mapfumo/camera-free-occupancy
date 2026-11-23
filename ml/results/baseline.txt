@@ -1,0 +1,21 @@
+== Signature rule (no training), empty vs occupied, all frames
+             pred empty  pred occupied
+empty             27214            167    recall 99.4%
+occupied            186          29949    recall 99.4%
+accuracy 99.4%
+
+== Logistic regression, 192 inputs, leave-one-round-out
+  held out 2026-11-22_eve   accuracy  96.8%   balanced  97.2%
+  held out 2026-11-22_pm    accuracy  99.9%   balanced 100.0%
+  held out 2026-11-23_am    accuracy  97.8%   balanced  96.9%
+  held out 2026-11-23_eve   accuracy  96.1%   balanced  94.4%
+  held out 2026-11-23_pm    accuracy  99.2%   balanced  99.1%
+  held out 2026-11-24_am    accuracy  99.4%   balanced  99.1%
+
+pooled over the six held-out rounds (rows true, columns predicted):
+              empty    seated   present    recall
+empty         27120         0       261     99.0%
+seated           11     16729        37     99.7%
+present         213       500     12645     94.7%
+precision     99.2%     97.1%     97.7%
+accuracy 98.2%   balanced accuracy 97.8%   frames 57516

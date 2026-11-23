@@ -1617,3 +1617,57 @@ within a session are near-duplicates, so split train/test **by session**
 (70 situations, not 57,000 samples). Classes are imbalanced roughly
 2 : 1.2 : 1. Open question for training: whether "occupied a minute ago"
 (the warm seat) is a feature or an error.
+
+## Phase 3 — Model
+
+### First model, scored on unseen rounds — 2026-11-24
+
+**Split.** Never by frame: frames 0.2 s apart are near-copies. The unit is a
+*round* — one daypart on one day, every class inside it (six of them,
+2026-11-22 pm/eve, 23 am/pm/eve, 24 am). Leave-one-round-out: train on five,
+test on the sixth, pool the six test sets. Every number below is on a day and
+daypart the model never saw. (`ml/dataset.py`)
+
+**Baselines first** (`ml/baseline.py`, `ml/results/baseline.txt`):
+
+| | accuracy | balanced | `present` recall | present → seated |
+|---|---:|---:|---:|---:|
+| Gate 2 signature rule, empty vs occupied only, no training | 99.4% | — | — | — |
+| Logistic regression, 192 inputs | 98.2% | 97.8% | 94.7% | 500 |
+| **CNN** (`ml/train.py`) | **99.1%** | **99.0%** | **98.5%** | **80** |
+
+The CNN: conv 3×3 3→16, conv 3×3 16→16, max-pool 2, dense 256→32→3; 11,091
+parameters; no global pooling and no flip/shift augmentation, because *where*
+the warmth and near returns sit is the seated/present signal. Fixed recipe
+chosen in advance (15 epochs, Adam 2e-3 cosine, class-weighted loss, seed 0)
+— the held-out round tunes nothing. ~7 s per fold on the CPU; the GPU isn't
+needed at this size.
+
+Where the CNN earns its place over the linear model is `present` vs `seated`
+(500 → 80 confusions): combining top-row and bottom-row evidence is not
+something a linear model does well.
+
+**Where the errors are.** Whole-session-labelled data (51,946 frames):
+**0.14% wrong**. The 40 dedicated `empty` sessions: **0 of 24,772 frames
+called occupied**. Per-frame-labelled sessions (walking past, sit-and-stand;
+5,570 frames): 8.2% wrong — nearly all the error. Of the 250 `empty` frames
+called `present`, every one is in a per-frame-labelled session and 78% carry
+a hot zone (median max excess +2.0 °C vs +1.0 °C for correctly-called
+empties): the person at the edge of the thermal's wider field, or the warm
+seat in 2026-11-22 session 23 (83 frames). Those are label-boundary cases,
+not a model failing on an empty room. Remaining whole-session errors are
+small posture confusions: seated→present in 2026-11-22_08 (22) and
+2026-11-24_06 (18), present→seated in 2026-11-23_08 (31).
+
+**Warm seat — decided for now:** keep it `empty` (as labelled by eye). The
+model calls ~half of those frames `present`, which in a building is the
+benign error ("occupied a minute ago"). Revisit at Gate 7 with real use.
+
+**On the STM32U585** (ST Edge AI Core 4.0.1, float32, no quantisation;
+`ml/results/stm32u5_*_report.txt`): weights 43.3 KiB + runtime ≈ **49 KiB
+flash** of 2 MiB; activations **5.75 KiB RAM** of 786 KiB; **186,787 MACC**
+per inference. `validate` on the host: generated C model vs PyTorch on 300
+frames — 100% same class, rmse 1.3e-6. Quantising to int8 would save ~33 KiB
+of flash nobody needs; not worth the accuracy risk. Latency on the board is a
+Gate 4 measurement (expected well under 10 ms at 160 MHz; inference runs every
+1–2 s).

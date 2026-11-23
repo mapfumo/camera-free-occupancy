@@ -1,0 +1,310 @@
+ST Edge AI Core v4.0.1-20581 7ed50de05
+Created date          : 2026-11-24 08:13:12
+Parameters            : validate --model ml/results/occupancy_cnn.onnx --target stm32u5 --name occupancy --mode host --valinput ml/results/val_inputs.npy --valoutput ml/results/val_outputs.npy --classifier --workspace ml/runs/st/ws --output ml/runs/st/out
+
+Exec/report summary (validate)
+--------------------------------------------------------------------------------------------
+model file         :   /home/tony/dev/6-month-plan/coworkos/ml/results/occupancy_cnn.onnx   
+type               :   onnx                                                                 
+c_name             :   occupancy                                                            
+compression        :   lossless                                                             
+options            :   allocate-inputs, allocate-outputs, use-lite-runtime, use-st-ai       
+optimization       :   balanced                                                             
+target/series      :   stm32u5                                                              
+workspace dir      :   /home/tony/dev/6-month-plan/coworkos/ml/runs/st/ws                   
+output dir         :   /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out                  
+vinput files       :   /home/tony/dev/6-month-plan/coworkos/ml/results/val_inputs.npy       
+voutput files      :   /home/tony/dev/6-month-plan/coworkos/ml/results/val_outputs.npy      
+model_fmt          :   float                                                                
+model_name         :   occupancy_cnn                                                        
+model_hash         :   0xccbb92aac5c1ff6b7b8100753cad82b3                                   
+params #           :   11,091 items (43.32 KiB)                                             
+--------------------------------------------------------------------------------------------
+input 1/1          :   'input', f32(1x3x8x8), 768 Bytes, activations                        
+output 1/1         :   'logits', f32(1x3), 12 Bytes, activations                            
+macc               :   186,787                                                              
+weights (ro)       :   44,364 B (43.32 KiB) (1 segment)                                     
+activations (rw)   :   5,888 B (5.75 KiB) (1 segment) *                                     
+ram (total)        :   5,888 B (5.75 KiB) = 5,888 + 0 + 0                                   
+--------------------------------------------------------------------------------------------
+(*) 'input'/'output' buffers are allocated in the activations buffer
+
+Model name - occupancy_cnn
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+m_id   layer (type,original)                                 oshape               param/size          macc                     connected to   | c_size          c_macc            c_type                           
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+7      head_1_weight (Placeholder, Gemm)                     [b:32,c:256]         8,192/32,768                                                | +128(+0.4%)     +8,224(+100.0%)   Dense_[7]                        
+       head_1_bias (Placeholder, Gemm)                       [b:32]               32/128                                                      | -128(-100.0%)                     
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+9      head_3_weight (Placeholder, Gemm)                     [b:3,c:32]           96/384                                                      | +12(+3.1%)      +99(+100.0%)      Dense_[o][9]                     
+       head_3_bias (Placeholder, Gemm)                       [b:3]                3/12                                                        | -12(-100.0%)                      
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+0      input (Input, )                                       [b:1,h:8,w:8,c:3]                                                                |                                   
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+1      _features_features..v_output_0 (Conv2D, Conv)         [b:1,h:8,w:8,c:16]   448/1,792         27,664                            input   |                                   Conv2D_[1]                       
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+2      _features_features..u_output_0 (Nonlinearity, Relu)   [b:1,h:8,w:8,c:16]                      1,024   _features_features..v_output_0   |                 +96(+9.4%)        Transpose_/Nonlinearity_[0, 2]   
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+3      _features_features..v_output_0 (Conv2D, Conv)         [b:1,h:8,w:8,c:16]   2,320/9,280      147,472   _features_features..u_output_0   |                                   Conv2D_[3]                       
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+4      _features_features..u_output_0 (Nonlinearity, Relu)   [b:1,h:8,w:8,c:16]                      1,024   _features_features..v_output_0   |                                   Nonlinearity_[4]                 
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+5      _features_features..l_output_0 (Pool, MaxPool)        [b:1,h:4,w:4,c:16]                      1,024   _features_features..u_output_0   |                                   Pool_[5]                         
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+6      _head_head_0_Flatten_output_0 (Reshape, Flatten)      [b:1,c:256]                                     _features_features..l_output_0   |                 +128(+100.0%)     Transpose_[6]                    
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+7      _head_head_1_Gemm_output_0 (Gemm, Gemm)               [b:1,c:32]                              8,224    _head_head_0_Flatten_output_0   |                 -8,224(-100.0%)   
+                                                                                                                              head_1_weight   | 
+                                                                                                                                head_1_bias   | 
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+8      _head_head_2_Relu_output_0 (Nonlinearity, Relu)       [b:1,c:32]                                 32       _head_head_1_Gemm_output_0   |                                   Nonlinearity_[8]                 
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+9      logits (Gemm, Gemm)                                   [b:1,c:3]                                  99       _head_head_2_Relu_output_0   |                 -99(-100.0%)      
+                                                                                                                              head_3_weight   | 
+                                                                                                                                head_3_bias   | 
+------ ----------------------------------------------------- -------------------- -------------- --------- -------------------------------- --- --------------- ----------------- -------------------------------- 
+model/c-model: macc=186,563/186,787 +224(+0.1%) weights=44,364/44,364  activations=--/5,888 io=--/0
+
+
+
+Generated C-graph summary
+------------------------------------------------------------------------------------------------------------------------
+model name            : occupancy_cnn
+c-name                : occupancy
+c-node #              : 10
+c-array #             : 21
+activations size      : 5888 (1 segment)
+weights size          : 44364 (1 segment)
+macc                  : 186787
+inputs                : ['input_output']
+outputs               : ['logits_output']
+
+C-Arrays (21)
+------ ------------------------------------------------ ------------ ------------------------- ------------- --------- 
+c_id   name (*_array)                                   item/size    domain/mem-pool           c-type        comment   
+------ ------------------------------------------------ ------------ ------------------------- ------------- --------- 
+0      _features_features_0_Conv_output_0_bias          16/64        weights/weights           const float             
+1      _features_features_0_Conv_output_0_output        1024/4096    activations/**default**   float                   
+2      _features_features_0_Conv_output_0_scratch0      27/108       activations/**default**   float                   
+3      _features_features_0_Conv_output_0_weights       432/1728     weights/weights           const float             
+4      _features_features_1_Relu_output_0_output        1024/4096    activations/**default**   float                   
+5      _features_features_2_Conv_output_0_bias          16/64        weights/weights           const float             
+6      _features_features_2_Conv_output_0_output        1024/4096    activations/**default**   float                   
+7      _features_features_2_Conv_output_0_scratch0      144/576      activations/**default**   float                   
+8      _features_features_2_Conv_output_0_weights       2304/9216    weights/weights           const float             
+9      _features_features_3_Relu_output_0_output        1024/4096    activations/**default**   float                   
+10     _features_features_4_MaxPool_output_0_output     256/1024     activations/**default**   float                   
+11     _head_head_0_Flatten_output_0_to_chlast_output   256/1024     activations/**default**   float                   
+12     _head_head_1_Gemm_output_0_bias                  32/128       weights/weights           const float             
+13     _head_head_1_Gemm_output_0_output                32/128       activations/**default**   float                   
+14     _head_head_1_Gemm_output_0_weights               8192/32768   weights/weights           const float             
+15     _head_head_2_Relu_output_0_output                32/128       activations/**default**   float                   
+16     input_Transpose_output                           192/768      activations/**default**   float                   
+17     input_output                                     192/768      activations/**default**   float         /input    
+18     logits_bias                                      3/12         weights/weights           const float             
+19     logits_output                                    3/12         activations/**default**   float         /output   
+20     logits_weights                                   96/384       weights/weights           const float             
+------ ------------------------------------------------ ------------ ------------------------- ------------- --------- 
+
+C-Layers (10)
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+c_id   name (*_layer)                            id   layer_type      macc     rom     tensors                                             shape (array id)     
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+0      input_Transpose                           2    Transpose       96       0       I: input_output                                     f32(1x3x8x8) (17)    
+                                                                                       O: input_Transpose_output                           f32(1x8x8x3) (16)    
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+1      _features_features_0_Conv_output_0        1    Conv2D          27664    1792    I: input_Transpose_output                           f32(1x8x8x3) (16)    
+                                                                                       S: _features_features_0_Conv_output_0_scratch0                           
+                                                                                       W: _features_features_0_Conv_output_0_weights       f32(16x3x3x3) (3)    
+                                                                                       W: _features_features_0_Conv_output_0_bias          f32(16) (0)          
+                                                                                       O: _features_features_0_Conv_output_0_output        f32(1x8x8x16) (1)    
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+2      _features_features_1_Relu_output_0        2    Nonlinearity    1024     0       I: _features_features_0_Conv_output_0_output        f32(1x8x8x16) (1)    
+                                                                                       O: _features_features_1_Relu_output_0_output        f32(1x8x8x16) (4)    
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+3      _features_features_2_Conv_output_0        3    Conv2D          147472   9280    I: _features_features_1_Relu_output_0_output        f32(1x8x8x16) (4)    
+                                                                                       S: _features_features_2_Conv_output_0_scratch0                           
+                                                                                       W: _features_features_2_Conv_output_0_weights       f32(16x3x3x16) (8)   
+                                                                                       W: _features_features_2_Conv_output_0_bias          f32(16) (5)          
+                                                                                       O: _features_features_2_Conv_output_0_output        f32(1x8x8x16) (6)    
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+4      _features_features_3_Relu_output_0        4    Nonlinearity    1024     0       I: _features_features_2_Conv_output_0_output        f32(1x8x8x16) (6)    
+                                                                                       O: _features_features_3_Relu_output_0_output        f32(1x8x8x16) (9)    
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+5      _features_features_4_MaxPool_output_0     5    Pool            1024     0       I: _features_features_3_Relu_output_0_output        f32(1x8x8x16) (9)    
+                                                                                       O: _features_features_4_MaxPool_output_0_output     f32(1x4x4x16) (10)   
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+6      _head_head_0_Flatten_output_0_to_chlast   6    Transpose       128      0       I: _features_features_4_MaxPool_output_0_output     f32(1x4x4x16) (10)   
+                                                                                       O: _head_head_0_Flatten_output_0_to_chlast_output   f32(1x16x4x4) (11)   
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+7      _head_head_1_Gemm_output_0                7    Dense           8224     32896   I: _head_head_0_Flatten_output_0_to_chlast_output   f32(1x16x4x4) (11)   
+                                                                                       W: _head_head_1_Gemm_output_0_weights               f32(32x256) (14)     
+                                                                                       W: _head_head_1_Gemm_output_0_bias                  f32(32) (12)         
+                                                                                       O: _head_head_1_Gemm_output_0_output                f32(1x32) (13)       
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+8      _head_head_2_Relu_output_0                8    Nonlinearity    32       0       I: _head_head_1_Gemm_output_0_output                f32(1x32) (13)       
+                                                                                       O: _head_head_2_Relu_output_0_output                f32(1x32) (15)       
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+9      logits                                    9    Dense           99       396     I: _head_head_2_Relu_output_0_output                f32(1x32) (15)       
+                                                                                       W: logits_weights                                   f32(3x32) (20)       
+                                                                                       W: logits_bias                                      f32(3) (18)          
+                                                                                       O: logits_output                                    f32(1x3) (19)        
+------ ----------------------------------------- ---- --------------- -------- ------- --------------------------------------------------- -------------------- 
+ 
+Setting validation data...
+ loading file: /home/tony/dev/6-month-plan/coworkos/ml/results/val_inputs.npy
+ loading file: /home/tony/dev/6-month-plan/coworkos/ml/results/val_outputs.npy
+   samples are reshaped: (300, 3) -> (300, 1, 1, 3)
+   I[1]: (300, 3, 8, 8)/float32, min/max=[-4.750000, 5.750000], mean/std=[0.522670, 0.774183]
+   O[1]: (300, 1, 1, 3)/float32, min/max=[-27.484678, 35.542721], mean/std=[1.789112, 10.518858]
+ 
+Running the ST.AI c-model (AI RUNNER)...(name=occupancy, mode=HOST)
+
+ DLL Driver v2.0 - Direct Python binding (/home/tony/dev/6-month-plan/coworkos/ml/runs/st/ws/inspector_occupancy/workspace/lib/libai_occupancy.so) ['occupancy']
+  
+  Summary 'occupancy' - ['occupancy']
+  -------------------------------------------------------------------------
+  I[1/1] 'input_1'    :   f32[1,3,8,8], 768 Bytes, in activations buffer   
+  O[1/1] 'output_1'   :   f32[1,3], 12 Bytes, in activations buffer        
+  n_nodes             :   10                                               
+  activations         :   5888                                             
+  weights             :   44364                                            
+  macc                :   186787                                           
+  hash                :   0xccbb92aac5c1ff6b7b8100753cad82b3               
+  compile_datetime    :   Nov 24 2026 08:13:12                             
+  -------------------------------------------------------------------------
+  protocol            :   DLL Driver v2.0 - Direct Python binding          
+  tools               :   ST.AI (st-ai api) v4.0.1                         
+  runtime lib         :   v12.0.1                                          
+  capabilities        :   IO_ONLY, PER_LAYER, PER_LAYER_WITH_DATA          
+  device.desc         :   x86_64, x86_64, Linux                            
+  -------------------------------------------------------------------------
+ 
+ NOTE: The duration and execution time per layer are just indications. They depend on the host machine's workload.
+
+  
+  ST.AI Profiling results v2.0 - "occupancy"
+  ------------------------------------------------------------
+  nb sample(s)   :   300                                      
+  duration       :   0.103 ms by sample (0.096/0.138/0.005)   
+  macc           :   186787                                   
+  ------------------------------------------------------------
+  
+  Statistic per tensor
+  -----------------------------------------------------------------------------------
+  tensor   #     type[shape]:size         min      max     mean      std  name       
+  -----------------------------------------------------------------------------------
+  I.0      300   f32[1,3,8,8]:768      -4.750    5.750    0.523    0.774  input_1    
+  O.0      300   f32[1,3]:12          -27.485   35.543    1.789   10.519  output_1   
+  -----------------------------------------------------------------------------------
+ 
+Saving validation data...
+ output directory: /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out
+ creating /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out/occupancy_val_io.npz
+ m_outputs_1: (300, 3)/float64, min/max=[-27.484684, 35.542725], mean/std=[1.789112, 10.518858], logits
+ c_outputs_1: (300, 1, 1, 3)/float32, min/max=[-27.484682, 35.542725], mean/std=[1.789112, 10.518858], logits
+
+ 
+Computing the metrics...
+
+ Accuracy report #1 for the generated HOST C-model
+ ----------------------------------------------------------------------------------------------------
+ notes: - computed against the provided ground truth values
+        - 300 samples (3 items per sample)
+
+  acc=100.00% rmse=0.000001819 mae=0.000001268 l2r=0.000000170 mean=-0.000000 std=0.000002 snr=135.367374 nse=1.000000 cos=1.000000 
+ 
+  Confusion matrix (axis=-1) - 3 classes (300 samples)
+  -----------------------
+  C0       133   .    .  
+  C1        .   95    .  
+  C2        .    .   72  
+
+ Accuracy report #1 for the reference model
+ ----------------------------------------------------------------------------------------------------
+ notes: - data type is different: r/float32 instead p/float64
+        - p/float64 data are converted to np.float32
+        - computed against the provided ground truth values
+        - 300 samples (3 items per sample)
+
+  acc=100.00% rmse=0.000001865 mae=0.000001283 l2r=0.000000175 mean=0.000000 std=0.000002 snr=135.151539 nse=1.000000 cos=1.000000 
+ 
+  Confusion matrix (axis=-1) - 3 classes (300 samples)
+  -----------------------
+  C0       133   .    .  
+  C1        .   95    .  
+  C2        .    .   72  
+
+ Cross accuracy report #1 (reference vs C-model)
+ ----------------------------------------------------------------------------------------------------
+ notes: - data type is different: r/float64 instead p/float32
+        - the output of the reference model is used as ground truth/reference value
+        - 300 samples (3 items per sample)
+
+  acc=100.00% rmse=0.000001332 mae=0.000000881 l2r=0.000000125 mean=-0.000000 std=0.000001 snr=138.075361 nse=1.000000 cos=1.000000 
+ 
+  Confusion matrix (axis=-1) - 3 classes (300 samples)
+  -----------------------
+  C0       133   .    .  
+  C1        .   95    .  
+  C2        .    .   72  
+
+
+Number of operations per c-layer
+------- ------ ------------------------------------------------ --------- -------------- 
+c_id    m_id   name (type)                                            #op           type 
+------- ------ ------------------------------------------------ --------- -------------- 
+0       2      input_Transpose (Transpose)                             96   smul_f32_f32 
+1       1      _features_features..v_output_0 (Conv2D)             27,664   smul_f32_f32 
+2       2      _features_features..u_output_0 (Nonlinearity)        1,024     op_f32_f32 
+3       3      _features_features..v_output_0 (Conv2D)            147,472   smul_f32_f32 
+4       4      _features_features..u_output_0 (Nonlinearity)        1,024     op_f32_f32 
+5       5      _features_features..l_output_0 (Pool_Max)            1,024   smul_f32_f32 
+6       6      _head_head_0_Flatt.._to_chlast (Transpose)             128   smul_f32_f32 
+7       7      _head_head_1_Gemm_output_0 (Dense)                   8,224   smul_f32_f32 
+8       8      _head_head_2_Relu_output_0 (Nonlinearity)               32     op_f32_f32 
+9       9      logits (Dense)                                          99   smul_f32_f32 
+------- ------ ------------------------------------------------ --------- -------------- 
+total                                                             186,787 
+
+Number of operation types
+---------------- --------- ----------- 
+operation type           #           % 
+---------------- --------- ----------- 
+smul_f32_f32       184,707       98.9% 
+op_f32_f32           2,080        1.1% 
+
+Complexity report (model)
+------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
+m_id   name                                    c_macc                    c_rom                     c_id     c_dur    l2r (X-CROSS)      
+------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
+7      head_1_weight                           |                  4.4%   ||||||||||||||||  74.2%   [7]        6.2%                      
+9      head_3_weight                           |                  0.1%   |                  0.9%   [9]        1.3%   1.24805013e-07 *   
+1      _features_features_0_Conv_output_0      |||               14.8%   |                  4.0%   [1]       14.0%                      
+2      _features_features_1_Relu_output_0      |                  0.6%   |                  0.0%   [0, 2]     6.4%                      
+3      _features_features_2_Conv_output_0      ||||||||||||||||  79.0%   |||||             20.9%   [3]       62.9%                      
+4      _features_features_3_Relu_output_0      |                  0.5%   |                  0.0%   [4]        3.9%                      
+5      _features_features_4_MaxPool_output_0   |                  0.5%   |                  0.0%   [5]        1.7%                      
+6      _head_head_0_Flatten_output_0           |                  0.1%   |                  0.0%   [6]        2.3%                      
+8      _head_head_2_Relu_output_0              |                  0.0%   |                  0.0%   [8]        1.3%                      
+------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
+macc=186,787 weights=44,364 act=5,888 ram_io=0
+
+Evaluation report (summary)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Output              acc       rmse          mae           l2r           mean        std        snr          nse        cos        tensor                               
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+HOST c-model #1     100.00%   0.000001819   0.000001268   0.000000170   -0.000000   0.000002   135.367374   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+original model #1   100.00%   0.000001865   0.000001283   0.000000175   0.000000    0.000002   135.151539   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+X-cross #1          100.00%   0.000001332   0.000000881   0.000000125   -0.000000   0.000001   138.075361   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ acc  : Accuracy (class, axis=-1)
+ rmse : Root Mean Squared Error
+ mae  : Mean Absolute Error
+ l2r  : L2 relative error
+ mean : Mean error
+ std  : Standard deviation error
+ snr  : Signal-to-Noise Ratio (SNR), bigger is better
+ nse  : Nash-Sutcliffe efficiency criteria, bigger is better, best=1, range=(-inf, 1]
+ cos  : COsine Similarity, bigger is better, best=1, range=(0, 1]

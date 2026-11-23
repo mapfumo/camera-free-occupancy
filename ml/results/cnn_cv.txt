@@ -1,0 +1,20 @@
+== CNN, leave-one-round-out
+  held out 2026-11-22_eve   accuracy  97.2%   balanced  97.5%   (8 s)
+      2026-11-22_22_present-marked         8.4% wrong of 738
+      2026-11-22_23_present-marked        18.9% wrong of 739
+      2026-11-22_24_present-marked         5.5% wrong of 740
+  held out 2026-11-22_pm    accuracy  99.8%   balanced  99.8%   (7 s)
+  held out 2026-11-23_am    accuracy  99.4%   balanced  99.3%   (8 s)
+  held out 2026-11-23_eve   accuracy  99.3%   balanced  98.9%   (7 s)
+      2026-11-23_34_present-marked         8.8% wrong of 839
+  held out 2026-11-23_pm    accuracy  99.3%   balanced  99.3%   (7 s)
+      2026-11-23_22_present-marked         9.0% wrong of 835
+  held out 2026-11-24_am    accuracy  99.5%   balanced  99.3%   (7 s)
+
+pooled over the six held-out rounds (rows true, columns predicted):
+              empty    seated   present    recall
+empty         27131         0       250     99.1%
+seated            1     16701        75     99.5%
+present         123        80     13155     98.5%
+precision     99.5%     99.5%     97.6%
+accuracy 99.1%   balanced accuracy 99.0%   frames 57516
