@@ -5,9 +5,10 @@ sensor and an 8×8 thermal array are read by an STM32U585, fused into one
 128-value frame, classified on the device, and published into an existing
 BACnet / InfluxDB / Grafana building-monitoring stack.
 
-> **Status: dataset (Gate 2 of 8), nearly done.** 58 labelled sessions
-> (about 47,000 frames) of `empty`, `seated` and `present`, over two days
-> and three dayparts; the classes separate by eye as heatmaps. There is no
+> **Status: model (Gate 3 of 8).** The dataset is done and tagged
+> `phase2-data`: 70 labelled sessions (57,516 frames) of `empty`, `seated`
+> and `present`, every class in every daypart on two days; the classes
+> separate by eye as heatmaps. There is no
 > model or on-device inference yet. See [Status](#status) for exactly what
 > works.
 
@@ -136,13 +137,14 @@ recording machine, and only the derived per-frame labels are committed.
 
 | Class | Frames | Sessions cover |
 |-------|-------:|----------------|
-| `empty` | 22,435 | Chair on its marks, pushed in, pulled out, turned, gone |
-| `seated` | 13,957 | Upright, leaning back, leaning in |
-| `present` | 11,079 | Standing at the desk, reaching across, walking past |
+| `empty` | 27,381 | Chair on its marks, pushed in, pulled out, turned, gone |
+| `seated` | 16,777 | Upright, leaning back, leaning in |
+| `present` | 13,358 | Standing at the desk, reaching across, walking past |
 
-Recorded morning, afternoon and evening on 2026-11-22/23, one person, one
-room. Frames within a session are near-duplicates, so this is ~58
-situations rather than 47,000 independent samples — split by session, not
+Recorded 2026-11-22 to 24 — each class morning, afternoon and evening on
+two days — one person, one room. Frames within a session are
+near-duplicates, so this is 70 situations rather than 57,000 independent
+samples — split by session, not
 by frame.
 
 | Tool | Purpose |
@@ -187,8 +189,8 @@ details the phases).
 | Gate | | State |
 |------|-|-------|
 | 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
-| 2 | Dataset — labelled classes, separable by eye as heatmaps | **in progress** — one morning round left |
-| 3 | Model — confusion matrix on held-out data | |
+| 2 | Dataset — labelled classes, separable by eye as heatmaps | done — `phase2-data` |
+| 3 | Model — confusion matrix on held-out data | **next** |
 | 4 | Live inference + on-device readout | |
 | 5 | Integrated into BACnet / Grafana | |
 | 6 | Same firmware in C/FreeRTOS, measured against this one | |
@@ -199,16 +201,15 @@ details the phases).
 FFI and ranging live; the AMG8833 driver in safe Rust; both grids in one world
 frame and registered against each other; the rig re-aimed at the desk, where
 both sensors clearly separate a seated person from an empty chair; a paired
-two-sensor stream at 5 Hz; the host-side viewer and CSV recorder; 58
+two-sensor stream at 5 Hz; the host-side viewer and CSV recorder; 70
 labelled sessions in which `empty`, `seated` and `present` separate by eye in
 every daypart; the model input encoding.
 
 A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
-**Next:** a second morning round, then tag `phase2-data` and start Gate 3 —
-training in STM32Cube AI Studio, scored on held-out sessions. The working
-list is [`TODO.md`](TODO.md).
+**Next:** Gate 3 — train in STM32Cube AI Studio and score on held-out
+sessions. The working list is [`TODO.md`](TODO.md).
 
 ## Documentation
 
