@@ -1509,3 +1509,56 @@ one channel with far fill (loses measured-far vs no-return); splitting
 is left out: it is the far wall coming and going, not people, and the mask
 shows that flicker to the model rather than hiding it. `class_look.py` now
 uses the same validity rule.
+
+### Second day: afternoon and evening rounds — 2026-11-23
+
+Sessions 12–23 (`pm`, from ~14:00) and 24–35 (`eve`, 18:38–20:15). Same
+protocol as the morning, plus `empty/out` in both rounds (the morning had
+skipped it). 2026-11-23 now has all three dayparts; with 2026-11-22's `pm`
+and `eve`, only `am` has a single day.
+
+**Every session passed.** Empties: no person signature in any frame,
+warmest zone +0.75 to +1.12 °C, tilt within 49.78–50.03°. Seated and
+present: signature in every frame; 5 s median tilt within 49.86–50.14°
+except session 19 (leaning in, 50.09–50.38°), the desk flexing under the
+forearms — session 20 straight after was back at 49.87–49.99°. Reaching
+across (33) swung single frames 47.1–51.4° with medians steady.
+
+**Same scene, two days.** Empty ToF vs the matching 2026-11-22 session:
+chair away 1/64 zones differ, chair in 2/64, marked 9/64. The exception is
+`empty/turned`: 23–26/64 vs yesterday, 2/64 vs this morning — the chair
+was turned differently today, so `empty` now covers two turned poses.
+
+**Afternoon contrast is lowest.** Seated warmest zone: +5.0–5.4 °C (am),
++2.25–2.75 °C (pm), +3.5 °C (eve, both days alike). Hot-zone median for
+seated: 19 am, 8 pm, 14 eve. The ToF carries the afternoon (near-zone
+median 12), which is the case for fusing both.
+
+**Two kinds of walking past.** Session 22 (pm): quick straight passes to
+and from the bedroom — 278 present / 557 empty, 88% of present frames over
+the signature threshold. Session 34 (eve): deliberately moving away slowly
+from the desk — 421 / 418, but only 76% over threshold; the other present
+frames are pass edges in runs of 1–10 frames with nearest return 0.89–0.97 m
+(the empty room starts at ~1 m) and thermal +1.0–1.5 °C, just under the
+cutoffs. Labels checked and kept: these are the boundary cases the model
+should see. No `empty` frame in either session shows any sign at all.
+
+**Light vs class, evening.** 2026-11-22's `eve` empties ran 18:17–18:55
+across sunset (18:21) and twilight; its seated/present after dark. Today
+started 18:38 for consistency, but session 35 (`empty`, ~20:10) is in full
+dark, so `empty` is not tied to twilight.
+
+**Start-up.** Session 13's first attempt lost the AMG8833 at start (third
+dropout in two days; sensors are on a shield, so not jumpers). Bus
+recovery + probe retry went into `fused_stream` before the evening round
+(TODO.md); all 12 evening starts were clean and none needed it.
+
+| Class × daypart | frames | person signature |
+|---|---:|---:|
+| empty am / pm / eve | 4110 / 9562 / 8763 | 0% / 0% / 1.9% |
+| seated am / pm / eve | 2820 / 5798 / 5339 | 100% / 100% / 100% |
+| present am / pm / eve | 2078 / 4143 / 4858 | 100% / 99.2% / 97.9% |
+
+Total labelled frames: empty 22,435, seated 13,957, present 11,079. The
+present shortfall is pass edges (above); the `eve` empty 1.9% is still
+2026-11-22 session 23's warm seat.
