@@ -5,9 +5,11 @@ sensor and an 8×8 thermal array are read by an STM32U585, fused into one
 128-value frame, classified on the device, and published into an existing
 BACnet / InfluxDB / Grafana building-monitoring stack.
 
-> **Status: hardware bring-up (Gate 1 of 8).** Both sensors are working
-> individually on a fixed rig. There is no model or inference yet. See
-> [Status](#status) for exactly what works.
+> **Status: dataset (Gate 2 of 8), nearly done.** 58 labelled sessions
+> (about 47,000 frames) of `empty`, `seated` and `present`, over two days
+> and three dayparts; the classes separate by eye as heatmaps. There is no
+> model or on-device inference yet. See [Status](#status) for exactly what
+> works.
 
 *CoworkOS* is the project's working name, and the docs still use it.
 
@@ -38,9 +40,9 @@ VL53L5CX (8×8 ToF)  +  AMG8833 (8×8 thermal)      shared I2C1 bus
         │ ST ULD in C, via FFI       │ pure Rust driver
         └──────────────┬─────────────┘
           STM32U585 · Cortex-M33 · Rust + Embassy
-                       │ two 8×8 grids → 128 values
+                       │ paired frames at 5 Hz → 3×8×8 model input
           STM32Cube AI generated C, via FFI           (Gate 3–4)
-                       │ empty / occupied / count + confidence, debounced
+                       │ empty / seated / present + confidence, debounced
           ILI9341 on-device readout                   (Gate 4)
                        │ MQTT
           BACnet objects → InfluxDB → Grafana         (Gate 5)
@@ -51,8 +53,12 @@ VL53L5CX (8×8 ToF)  +  AMG8833 (8×8 thermal)      shared I2C1 bus
   platform layer. The AMG8833 is simple enough that a pure, safe Rust driver
   is the honest choice. Both are deliberate; the reasoning is in
   [`LEARNING.md`](LEARNING.md#7-the-c-interop-story).
-- **Inference every 1–2 s, not every frame.** The sensors run at 10 Hz;
+- **Inference every 1–2 s, not every frame.** Paired frames arrive at 5 Hz;
   occupancy does not change that fast.
+- **Three classes, set by the geometry.** Looking down at 49.9°, a standing
+  person's head is out of frame, so standing and walking past look alike:
+  `empty`, `seated` (one person in the chair), `present` (in view, not
+  seated). The honest claim is workstation occupancy, not room counting.
 - **Debounce in firmware**, so the device reports a stable state rather than
   leaving that to the dashboard.
 - **Planned BACnet objects:** Binary Input 0 (occupied), Analog Input 0
@@ -68,7 +74,7 @@ VL53L5CX (8×8 ToF)  +  AMG8833 (8×8 thermal)      shared I2C1 bus
 | HiLetgo ILI9341 2.8" TFT, SPI | On-device readout, Gate 4 — display only |
 
 Both sensors share I2C1 on PB8 (SCL) / PB9 (SDA) through the board's ARDUINO
-header, mounted side by side on a protoboard rig. The rig hangs from a
+header, mounted side by side on an Arduino-compatible proto shield. The rig hangs from a
 desk-clamped boom at 165 cm, looking down at the seat at 49.9° below
 horizontal (measured by the board's own accelerometer). Both grids are corrected into one world frame in the driver
 (`firmware/src/orientation.rs`) and registered against each other.
@@ -107,7 +113,7 @@ The firmware is a library (`src/lib.rs`, drivers in `src/vl53l5cx/` and
 
 | Program | Purpose |
 |---------|---------|
-| `fused_stream` | Both sensors on one bus, paired at 5 Hz — the dataset format |
+| `fused_stream` | Both sensors on one bus, paired at 5 Hz — the dataset format. Clears a stuck I2C bus and retries the AMG8833 probe at start-up (`src/i2c_recovery.rs`) |
 | `tilt_check` | The rig's mount angle from the on-board accelerometer |
 | `tof_range` | Live VL53L5CX ranging — the Phase 1 checkpoint |
 | `thermal_probe` | Live AMG8833 thermal frames, banded against the frame median |
@@ -120,14 +126,41 @@ The firmware is a library (`src/lib.rs`, drivers in `src/vl53l5cx/` and
 The diagnostic programs are kept on purpose: each one settled a real fault, and
 together they are a reusable bring-up kit for this board.
 
-### Gate 2 exit check
+### Dataset
 
-[`tools/class_look.py`](tools/class_look.py) reads every session and draws
-per-class average grids and a frame-level scatter into `figures/gate2/`:
+[`sessions/`](sessions/) holds every recording as gzipped CSV — raw ToF
+distance and status plus temperature, 64 of each per frame — with the
+format in [`sessions/README.md`](sessions/README.md). Walking-past sessions
+were filmed by a webcam *only to label them*; the footage stays on the
+recording machine, and only the derived per-frame labels are committed.
+
+| Class | Frames | Sessions cover |
+|-------|-------:|----------------|
+| `empty` | 22,435 | Chair on its marks, pushed in, pulled out, turned, gone |
+| `seated` | 13,957 | Upright, leaning back, leaning in |
+| `present` | 11,079 | Standing at the desk, reaching across, walking past |
+
+Recorded morning, afternoon and evening on 2026-11-22/23, one person, one
+room. Frames within a session are near-duplicates, so this is ~58
+situations rather than 47,000 independent samples — split by session, not
+by frame.
+
+| Tool | Purpose |
+|------|---------|
+| [`tools/heatmap_viewer.py`](tools/heatmap_viewer.py) | Live view and CSV recorder (below) |
+| [`tools/label_frames.py`](tools/label_frames.py) | Step through a session beside its video and label each frame |
+| [`tools/class_look.py`](tools/class_look.py) | Gate 2 exit check: per-class average grids and a frame-level scatter into `figures/gate2/` |
+| [`tools/encode.py`](tools/encode.py) | The model input: 3×8×8 per frame — ToF valid mask, distance with invalid zones read as far, thermal excess over the frame median |
 
 ```bash
 python3 tools/class_look.py sessions figures/gate2/<round-name>
+python3 tools/encode.py sessions          # per-session class counts
 ```
+
+Why the encoding has a separate valid mask — a "valid" 0 mm reading that
+clustered in one corner of the empty sessions — is in
+[`NOTES.md`](NOTES.md) and the
+[write-up](https://www.mapfumo.net/posts/2026/november/camera-free-occupancy-building-the-dataset/).
 
 ### Heatmap viewer
 
@@ -154,7 +187,7 @@ details the phases).
 | Gate | | State |
 |------|-|-------|
 | 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
-| 2 | Dataset — labelled classes, separable by eye as heatmaps | **next** |
+| 2 | Dataset — labelled classes, separable by eye as heatmaps | **in progress** — one morning round left |
 | 3 | Model — confusion matrix on held-out data | |
 | 4 | Live inference + on-device readout | |
 | 5 | Integrated into BACnet / Grafana | |
@@ -166,14 +199,16 @@ details the phases).
 FFI and ranging live; the AMG8833 driver in safe Rust; both grids in one world
 frame and registered against each other; the rig re-aimed at the desk, where
 both sensors clearly separate a seated person from an empty chair; a paired
-two-sensor stream at 5 Hz; the host-side viewer and CSV recorder.
+two-sensor stream at 5 Hz; the host-side viewer and CSV recorder; 58
+labelled sessions in which `empty`, `seated` and `present` separate by eye in
+every daypart; the model input encoding.
 
 A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
-**Next:** Gate 2 — collect labelled `empty` / `seated` / `present` sessions
-with `fused_stream`, following [`COLLECTION.md`](COLLECTION.md).
-The working list is [`TODO.md`](TODO.md).
+**Next:** a second morning round, then tag `phase2-data` and start Gate 3 —
+training in STM32Cube AI Studio, scored on held-out sessions. The working
+list is [`TODO.md`](TODO.md).
 
 ## Documentation
 
@@ -182,10 +217,12 @@ The working list is [`TODO.md`](TODO.md).
 | [`LEARNING.md`](LEARNING.md) | Plain-language explanation of the whole project, for someone new to embedded |
 | [`NOTES.md`](NOTES.md) | Engineering log: measurements, findings, and the theories that failed |
 | [`COLLECTION.md`](COLLECTION.md) | Gate 2 recording procedure: classes, labels, and the rules each session follows |
+| [`sessions/README.md`](sessions/README.md) | Dataset file format, columns and per-frame labels |
 | [`TODO.md`](TODO.md) | Working list, ordered by when it matters |
 | [`occupancy-sensor-project-plan.md`](occupancy-sensor-project-plan.md) | The seven-phase plan |
 
-Write-ups will appear at [mapfumo.net](https://www.mapfumo.net).
+Write-ups at [mapfumo.net](https://www.mapfumo.net): [building the
+dataset](https://www.mapfumo.net/posts/2026/november/camera-free-occupancy-building-the-dataset/).
 
 ## License
 
