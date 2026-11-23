@@ -1737,3 +1737,61 @@ ms**, ~7 cycles/MACC, parity unchanged (106/106, 8.9e-6). At 5 Hz that is ~4%
 of the CPU. Worth carrying into the FreeRTOS build at Gate 6 — a comparison
 with the cache on one side and off on the other would measure the cache, not
 the RTOS.
+
+### Choosing the debounce rule — 2026-11-24
+
+Chosen from data (`ml/debounce.py`, `ml/results/debounce.txt`), not guessed.
+The streams are the CNN's out-of-fold probabilities (leave-one-round-out,
+seed 0): what the model said about each frame without ever having seen that
+frame's round, in time order within each session. Three tests:
+
+- **steady** — 63 whole-session-labelled sessions, 2.89 h. Nothing changes
+  in them, so every reported change is false. The first 3 s are skipped (the
+  device reports nothing until its window fills; counting them showed a
+  start-up artefact, not flapping).
+- **transitions** — per round, whole sessions chained end to end (empty →
+  seated → present → seated → present → empty → seated → empty): 42 real
+  class changes. Lag = seconds until the report shows the new class and holds
+  it 3 s.
+- **walking** — the 7 per-frame-labelled sessions: agreement, and walking-past
+  frames reported `seated`.
+
+| rule | false empty↔occupied | false class changes | lag median | lag max | walk → seated frames |
+|---|---:|---:|---:|---:|---:|
+| none (raw) | 0 | 73 | 0.0 s | 1.2 s | 26 |
+| majority 2 s | 0 | 4 | 1.0 s | 1.8 s | 23 |
+| 5 in a row (1.0 s) | 0 | 5 | 0.8 s | 2.0 s | 23 |
+| **8 in a row (1.6 s)** | **0** | **2** | **1.4 s** | **2.6 s** | 23 |
+| 10 in a row (2.0 s) | 0 | 2 | 1.8 s | 3.0 s | 15 |
+| EMA α 0.2, margin 0.2 | 0 | 3 | 0.8 s | 1.6 s | 21 |
+| EMA α 0.1 | 0 | 2 | 1.2 s | 2.0 s | 20 |
+
+**Headline: no rule, not even no debouncing at all, makes a single false
+empty↔occupied change in 2.9 h.** That is the BACnet Binary Input a building
+acts on. Everything left is seated ↔ present.
+
+**Chosen: 8 in a row** (`firmware/src/debounce.rs`) — ties for fewest false
+class changes, real changes followed in 1.4 s median / 2.6 s worst, and the
+simplest rule to reason about. EMA α 0.1 is equal on flaps and slightly
+faster; not worth the extra state to explain.
+
+**Against the bar set in advance** (no false change in steady data; every
+real change within 3 s; walking past never `seated`):
+
+- within 3 s — **met** (2.6 s worst).
+- no false change — **met for occupancy; not for class.** The two class
+  changes are one episode: 5.6 s of `seated` while standing at the desk,
+  2026-11-23_08 at 142 s (no video for that session). A rule slow enough to
+  hide a 5.6 s model error would be slower than the 3 s bar — the two
+  criteria conflict for this one case, so it stays a known limitation.
+- walking never `seated` — **not met.** Two episodes (2026-11-24_11 at
+  ~45 s, 3 s long; 2026-11-23_22 at ~77 s, 1.6 s). The first checked against
+  the video: bent right over the chair, body low at seat height — the label
+  (`present`) is right, and from above it is a seated silhouette. A hard
+  posture, not a labelling error.
+
+**On the board:** `fused_stream` prints `state frame N: <class> (changed)` on
+each change and a `state` heartbeat once a second; first report at frame 8 as
+designed. The same run started on a stuck I2C bus and the nine-pulse
+recovery freed it on the **first** attempt (`sda_was_stuck: true, pulses: 1,
+bus_free: true`) — the fix confirmed on hardware.

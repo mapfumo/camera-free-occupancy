@@ -9,6 +9,7 @@
 
 pub mod amg8833;
 pub mod clock;
+pub mod debounce;
 pub mod encode;
 pub mod i2c_recovery;
 pub mod inference;

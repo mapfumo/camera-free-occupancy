@@ -79,6 +79,7 @@ use panic_probe as _;
 
 use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
+use coworkos_firmware::debounce::Debouncer;
 use coworkos_firmware::encode::{self, INPUTS};
 use coworkos_firmware::inference::{self, Model};
 use coworkos_firmware::i2c_recovery;
@@ -238,6 +239,8 @@ async fn main(_spawner: Spawner) {
         }
     };
     let mut x = [0f32; INPUTS];
+    let mut debounce = Debouncer::new();
+    let mut since_report: u32 = 0;
 
     info!("streaming paired frames at {=u8} Hz", RANGING_HZ);
     info!("");
@@ -310,6 +313,18 @@ async fn main(_spawner: Spawner) {
                         (t1 - t0).as_micros(),
                         (t2 - t1).as_micros()
                     );
+                    // The debounced state: on every change, and once a second
+                    // as a heartbeat, so a listener never has to guess.
+                    since_report += 1;
+                    if let Some(st) = debounce.update(p.class) {
+                        info!("state frame {=u32}: {=str} (changed)", frame, inference::CLASSES[st]);
+                        since_report = 0;
+                    } else if since_report >= RANGING_HZ as u32 {
+                        if let Some(st) = debounce.state() {
+                            info!("state frame {=u32}: {=str}", frame, inference::CLASSES[st]);
+                        }
+                        since_report = 0;
+                    }
                 }
                 Err(e) => warn!("inference failed: {}", e),
             }

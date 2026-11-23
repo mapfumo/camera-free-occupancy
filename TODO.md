@@ -184,12 +184,16 @@ Ordered by when it matters, not by size.
 - [x] ~~Generate the C model, link it, run it on the board.~~ 2026-11-24:
       `fused_stream` classifies every frame; parity with the PC 106/106,
       max logit diff 1e-5; 8.2 ms per inference with ICACHE on (18.5 off).
-- [ ] **Debounce** — report a stable state every 1–2 s, not raw per-frame
-      classes; decide the rule (majority over a window, or N-in-a-row to
-      change) and measure flapping on a walk-in / sit / walk-out test.
+- [x] ~~Debounce rule.~~ 2026-11-24: 8 in a row (1.6 s), chosen by
+      simulation on real prediction streams; 0 false empty↔occupied changes
+      in 2.9 h, lag ≤ 2.6 s. NOTES, "Choosing the debounce rule".
+- [ ] **Live scripted test** (stage 2): ~10 min script with webcam ground
+      truth — empty, walk in and sit, stand, sit and lean back, walk out,
+      walk past, empty. Score the board's state lines against the labels:
+      lag per change, false changes, walking-past-as-seated. Also the
+      all-classes parity run.
 - [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
       only, no touch.
-- [ ] Longer parity run across all three classes (walk in, sit, stand, leave).
 - [ ] Port bus recovery + ICACHE into `main.rs` when the application binary
       takes over from `fused_stream`.
 

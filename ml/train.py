@@ -75,18 +75,25 @@ def fit(X, y, seed=SEED):
 
 
 def predict(net, X):
+    return probabilities(net, X).argmax(1)
+
+
+def probabilities(net, X):
     with torch.no_grad():
-        return net(torch.from_numpy(X)).argmax(1).numpy()
+        return torch.softmax(net(torch.from_numpy(X)), 1).numpy()
 
 
 def cross_validate(d, seed=SEED):
     pooled = np.zeros((len(CLASSES), len(CLASSES)), int)
     lines = [f"== CNN, leave-one-round-out, seed {seed}"]
     oof = np.full(len(d["y"]), -1)
+    oof_p = np.zeros((len(d["y"]), len(CLASSES)), np.float32)
     for r, tr, te in rounds(d):
         t0 = time.time()
         net = fit(d["X"][tr], d["y"][tr], seed=seed)
-        pred = predict(net, d["X"][te])
+        prob = probabilities(net, d["X"][te])
+        pred = prob.argmax(1)
+        oof_p[te] = prob
         m = confusion(d["y"][te], pred)
         pooled += m
         bal = np.mean([m[i, i] / m[i].sum() for i in range(len(CLASSES))])
@@ -102,6 +109,7 @@ def cross_validate(d, seed=SEED):
         print(f"  {r}: {np.trace(m)/m.sum():.1%}", flush=True)
     os.makedirs(os.path.join(HERE, "runs"), exist_ok=True)
     np.save(os.path.join(HERE, "runs", f"cnn_cv_pred_seed{seed}.npy"), oof)
+    np.save(os.path.join(HERE, "runs", f"cnn_cv_prob_seed{seed}.npy"), oof_p)
     lines.append("")
     lines.append(report(pooled, "pooled over the six held-out rounds (rows true, columns predicted):"))
     return "\n".join(lines), pooled
