@@ -378,7 +378,6 @@ reason for not being now.
 - [ ] Multi-zone deployment: two or three nodes across a floor, aggregated in
       Grafana into one view. Needs the second SATEL and
       `vl53l5cx_set_i2c_address()` plus LPn control if two ever share a bus.
-- [ ] KiCad sensor shield — a 2-layer board carrying both breakouts on sockets
-      with proper pull-ups and decoupling, no MCU. The roadmap gives this an
-      optional post-Gate-8 entry point, where a proven circuit gives it an honest
-      reason to exist.
+- [x] ~~KiCad sensor shield.~~ **Dropped 2026-11-24** with KiCad itself
+      (roadmap, "Deferred"): time goes to the Edge AI and LoRaWAN business
+      cases and FreeRTOS instead. The soldered proto shield stays.
