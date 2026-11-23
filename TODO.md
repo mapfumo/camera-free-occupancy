@@ -102,6 +102,18 @@ Ordered by when it matters, not by size.
       sensor, both gone on retry: suspect the shared SCL/SDA jumpers or a
       breadboard contact rather than either breakout. Reseat before the
       Phase 6 multi-day run, where nobody is there to retry.
+      **Third dropout, 2026-11-23 afternoon — and there are no jumpers:**
+      the sensors sit on an Arduino-compatible shield, so "loose wire" is
+      unlikely. First attempt at session 13 (`empty/in/pm`, nobody near the
+      rig) failed `no AMG8833 at 0x68 or 0x69`; `i2c_scan` straight after
+      found both; retry clean. New suspect: every session ends with
+      `timeout` killing probe-rs mid-stream, which can leave a sensor
+      mid-transfer holding SDA low, so the next start's probe fails. Not
+      confirmed. Fix candidates: I2C bus recovery (9 SCL pulses + STOP)
+      before probing, and retry the probe a few times before giving up.
+      Also: on that failure `fused_stream` halts but probe-rs keeps running,
+      so the whole 815 s timed out with zero frames — check for frames ~30 s
+      after every launch.
       **Separate fault, same morning:** session 09 (reaching across the
       desk) lost the ST-LINK at 144 s — kernel `error -71`, USB
       re-enumerated a second later. A host-side cable/connector glitch, not
