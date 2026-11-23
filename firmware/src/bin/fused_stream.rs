@@ -79,6 +79,8 @@ use panic_probe as _;
 
 use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
+use coworkos_firmware::encode::{self, INPUTS};
+use coworkos_firmware::inference::{self, Model};
 use coworkos_firmware::i2c_recovery;
 use coworkos_firmware::ism330dhcx::{self, Ism330dhcx, MICRO_G_PER_LSB, Tilt};
 use coworkos_firmware::vl53l5cx::bindings::{
@@ -104,6 +106,7 @@ const WARM_STEP: i16 = 50;
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(clock::config());
+    clock::enable_icache();
 
     info!("fused stream — VL53L5CX + AMG8833, one bus, paired frames");
 
@@ -221,6 +224,21 @@ async fn main(_spawner: Spawner) {
         stall().await;
     }
 
+    // ---- occupancy model ----
+    let mut model = match Model::new() {
+        Ok(m) => {
+            info!("occupancy model ready: {=u32} MACC per inference", inference::MACC);
+            Some(m)
+        }
+        Err(e) => {
+            // Streaming still works without it; the dataset tool must not
+            // depend on the model.
+            warn!("occupancy model failed to start: {}", e);
+            None
+        }
+    };
+    let mut x = [0f32; INPUTS];
+
     info!("streaming paired frames at {=u8} Hz", RANGING_HZ);
     info!("");
 
@@ -270,6 +288,32 @@ async fn main(_spawner: Spawner) {
         print_tof(frame, t_ms, tilt, &distance, &status, results.silicon_temp_degc);
         print_status(frame, &status);
         print_thermal(frame, &thermal, die);
+
+        // Classify the pair. Its own line, not a `--- frame` block, so the
+        // viewer and the dataset format are untouched; tools/parity_check.py
+        // re-encodes the raw grids above and compares against these logits.
+        if let Some(m) = model.as_mut() {
+            let t0 = Instant::now();
+            encode::encode(&distance, &status, &thermal, &mut x);
+            let t1 = Instant::now();
+            match m.run(&x) {
+                Ok(p) => {
+                    let t2 = Instant::now();
+                    let pr = p.probabilities();
+                    info!(
+                        "infer frame {=u32}: {=str} {=f32} | p {=f32} {=f32} {=f32} | logits {=f32} {=f32} {=f32} | encode {=u64} us, run {=u64} us",
+                        frame,
+                        inference::CLASSES[p.class],
+                        pr[p.class],
+                        pr[0], pr[1], pr[2],
+                        p.logits[0], p.logits[1], p.logits[2],
+                        (t1 - t0).as_micros(),
+                        (t2 - t1).as_micros()
+                    );
+                }
+                Err(e) => warn!("inference failed: {}", e),
+            }
+        }
     }
 }
 

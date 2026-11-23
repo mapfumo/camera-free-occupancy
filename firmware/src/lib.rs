@@ -9,7 +9,9 @@
 
 pub mod amg8833;
 pub mod clock;
+pub mod encode;
 pub mod i2c_recovery;
+pub mod inference;
 pub mod ism330dhcx;
 pub mod orientation;
 pub mod vl53l5cx;

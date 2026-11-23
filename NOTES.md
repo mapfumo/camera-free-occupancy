@@ -1700,3 +1700,40 @@ model too. On-target validation and timing are Gate 4.
 **Gate 3 exit met:** confusion matrix on held-out data — six rounds the
 model never trained on, three seeds. The model that ships is seed 0 trained
 on all 70 sessions (`ml/results/occupancy_cnn.onnx`). Tagged `phase3-model`.
+
+
+## Phase 4 — Live inference
+
+### The model runs on the board — 2026-11-24
+
+**Path.** `stedgeai generate` (st-ai C API) → `firmware/vendor/ai_model/`
+(network + 44 KiB weight array) compiled by `build.rs` with `cc`, bindgen over
+`occupancy.h`, linked against ST's `NetworkRuntime1201_CM33_GCC.a` straight
+from the ST Edge AI install (`STEDGEAI_DIR`, default `/opt/ST/STEdgeAI/4.0`)
+— checked first with `readelf -A`: hard-float, `Tag_ABI_VFP_args: VFP
+registers`, matching `thumbv8m.main-none-eabihf`. It linked first time: no
+libm, no newlib; the Rust `compiler_builtins` cover memcpy and friends. Safe
+wrapper `firmware/src/inference/` (two static buffers, five `unsafe` calls);
+encoding `firmware/src/encode.rs`, the twin of `tools/encode.py`. The CRC
+clock is enabled before `stai_runtime_init` (ST's runtime has always checked
+it is on an ST part that way). Needed embassy-stm32's `unstable-pac` feature
+for that and for the cache below.
+
+`fused_stream` now classifies every pair and prints one extra line,
+`infer frame N: <class> <p> | p .. | logits .. | encode us, run us` — not a
+`--- frame` block, so the viewer and the dataset format are untouched.
+
+**Parity** (`tools/parity_check.py`): re-encode the logged raw grids in
+Python, run the ONNX model on the PC, compare with the board's logits. 106
+frames, **106/106 same class, largest logit difference 1.0e-5.** The Rust
+encoding and ST's C on the Cortex-M33 both agree with what the model was
+trained and tested on.
+
+**Timing.** Encoding 72–76 µs. Inference **18.5 ms** at first — ~16 cycles
+per MACC at 160 MHz, far slower than expected. Cause: Embassy leaves the
+STM32U5's 8 KiB instruction cache (ICACHE) off, so every instruction fetch
+waits on flash. `clock::enable_icache()` (invalidate, then enable): **8.2
+ms**, ~7 cycles/MACC, parity unchanged (106/106, 8.9e-6). At 5 Hz that is ~4%
+of the CPU. Worth carrying into the FreeRTOS build at Gate 6 — a comparison
+with the cache on one side and off on the other would measure the cache, not
+the RTOS.

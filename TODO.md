@@ -179,8 +179,19 @@ Ordered by when it matters, not by size.
 - [x] ~~Seed check, then close Gate 3.~~ **Closed 2026-11-24**, tagged
       `phase3-model`: 99.08–99.10% over three seeds. Temporal input not
       pursued — Gate 4's debounce handles the pass-edge frames.
-- [ ] Generate the C code (`stedgeai generate`) into `firmware/vendor/ai_model/`
-      — start of Gate 4.
+## Gate 4 — Live inference
+
+- [x] ~~Generate the C model, link it, run it on the board.~~ 2026-11-24:
+      `fused_stream` classifies every frame; parity with the PC 106/106,
+      max logit diff 1e-5; 8.2 ms per inference with ICACHE on (18.5 off).
+- [ ] **Debounce** — report a stable state every 1–2 s, not raw per-frame
+      classes; decide the rule (majority over a window, or N-in-a-row to
+      change) and measure flapping on a walk-in / sit / walk-out test.
+- [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
+      only, no touch.
+- [ ] Longer parity run across all three classes (walk in, sit, stand, leave).
+- [ ] Port bus recovery + ICACHE into `main.rs` when the application binary
+      takes over from `fused_stream`.
 
 ## Before Gate 2 data collection
 

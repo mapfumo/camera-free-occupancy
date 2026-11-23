@@ -37,3 +37,17 @@ pub fn config() -> Config {
 
     config
 }
+
+/// Turn on the 8 KiB instruction cache in front of flash.
+///
+/// Embassy leaves it off. At 160 MHz flash needs wait states on every fetch,
+/// so with the cache off the core spends most of its time waiting for
+/// instructions — the occupancy model took 18.5 ms per inference that way.
+/// Call once, straight after `embassy_stm32::init`.
+pub fn enable_icache() {
+    use embassy_stm32::pac::ICACHE;
+    // Default 2-way mode; invalidate first, then enable.
+    ICACHE.cr().modify(|w| w.set_cacheinv(true));
+    while ICACHE.sr().read().busyf() {}
+    ICACHE.cr().modify(|w| w.set_en(true));
+}
