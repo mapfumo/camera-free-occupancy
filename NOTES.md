@@ -1562,3 +1562,58 @@ recovery + probe retry went into `fused_stream` before the evening round
 Total labelled frames: empty 22,435, seated 13,957, present 11,079. The
 present shortfall is pass edges (above); the `eve` empty 1.9% is still
 2026-11-22 session 23's warm seat.
+
+### Second morning round; Gate 2 closes — 2026-11-24
+
+Sessions 2026-11-24 01–12 (`am`, 05:33–07:36), the same list as the
+afternoon and evening rounds. Started at 05:33 — within minutes of
+2026-11-23's dawn start — so both mornings cover the same light.
+
+**Every session passed.** Empties: no person signature, warmest zone
++0.75 to +1.0 °C, tilt 49.82–50.06°. Session 01 followed a sit in the
+chair (full 815 s settle) and differed from 2026-11-23's first empty in
+11/64 ToF zones — the chair re-placed after getting up; the other empties
+were 3–5/64 from their 2026-11-23 match, except `turned` (10/64 vs
+2026-11-23, 24/64 vs 2026-11-22: today's turn matches yesterday's pose).
+Seated and present: signature in every frame, 5 s median tilt within
+49.93–50.06°; leaning in flexed the desk to 50.23° at the first frame and
+settled. Reaching across (10) ran its full length — 2026-11-23's was cut
+at 144 s by the USB drop. Walking past (11), mixed quick passes and slow
+walk-aways: 399 present / 440 empty; 87% of present frames over the
+signature threshold, 1% of empty frames showing any sign at all.
+
+**Morning thermal contrast holds.** Seated warmest zone +4.5 to +4.88 °C
+(2026-11-23 am: +5.0 to +5.5); afternoon was +2.25 to +2.75, evening +3.5.
+
+**Stuck bus, caught in the act.** Session 03's start logged
+`sda_was_stuck: true` after session 02 ended with a `timeout` kill: the
+cause of the three earlier "no AMG8833" dropouts, confirmed. The first
+recovery stopped clocking at the first SDA high (1 pulse) and left the
+bus busy; the retry (6 pulses) freed it. Fixed: nine pulses whenever SDA
+is stuck (TODO.md). Untested on a real stuck bus yet — ten deliberate
+restarts after the fix all came up clean.
+
+**Gate 2 exit check: passed.** 70 sessions, 3 days, every class in every
+daypart on two days (`figures/gate2/2026-11-24_two_days_grids.png`):
+
+| Class × daypart | am | pm | eve |
+|---|---:|---:|---:|
+| empty — frames | 9056 | 9562 | 8763 |
+| empty — person signature | 0% | 0% | 1.9% |
+| seated — frames | 5640 | 5798 | 5339 |
+| seated — person signature | 100% | 100% | 100% |
+| present — frames | 4357 | 4143 | 4858 |
+| present — person signature | 98.9% | 99.2% | 97.9% |
+
+Labelled frames: empty 27,381, seated 16,777, present 13,358 (57,516).
+By eye: `empty` flat in thermal, ToF only at 1.0–1.9 m; `seated` a warm
+block lower-centre over near returns at 0.5–0.9 m along the bottom rows;
+`present` warmth upper-left with near returns filling the top. The
+present shortfall is pass edges in the walking sessions; the `eve` empty
+1.9% is 2026-11-22 session 23's warm seat.
+
+Caveats carried into Gate 3: one person, one room, one chair; frames
+within a session are near-duplicates, so split train/test **by session**
+(70 situations, not 57,000 samples). Classes are imbalanced roughly
+2 : 1.2 : 1. Open question for training: whether "occupied a minute ago"
+(the warm seat) is a feature or an error.

@@ -123,6 +123,14 @@ Ordered by when it matters, not by size.
       theory was right. Four timeout-killed restarts in a row: all clean,
       no recovery needed. Still open: port to `main.rs` for Phase 4, and
       make a give-up exit probe-rs instead of stalling.
+      **Confirmed 2026-11-24**, start of morning session 03: SDA stuck low
+      after session 02's timeout kill. Attempt 1 stopped clocking at the
+      first SDA high (1 pulse) and the bus stayed busy — a 1 bit mid-byte,
+      not a release; attempt 2 freed it (6 pulses) and the AMG answered.
+      Fixed the same morning: always send all nine pulses when SDA is
+      stuck. Ten varied-time timeout kills after the fix: all clean, none
+      stuck, so the nine-pulse path is still unexercised on hardware —
+      watch the log for `pulses` on the next recovery.
       **Separate fault, same morning:** session 09 (reaching across the
       desk) lost the ST-LINK at 144 s — kernel `error -71`, USB
       re-enumerated a second later. A host-side cable/connector glitch, not
@@ -163,16 +171,18 @@ Ordered by when it matters, not by size.
 
 ## Before Gate 2 data collection
 
-- [ ] **Gate 2 exit check — rerun `tools/class_look.py` after each round.**
-      First run 2026-11-22 (round 1, one afternoon): classes separate in
-      both sensors and in position. Exit when that still holds across
-      several days and all three dayparts.
-      **2026-11-23: all three dayparts done** (am round, sessions 01–11);
-      the classes still separate — NOTES, "Morning round". Still needed:
-      a second day (the whole dataset is 22–23 Nov), and the afternoon
-      walking-past session below.
+- [x] ~~Gate 2 exit check.~~ **Passed 2026-11-24.** 70 sessions,
+      2026-11-22 to 24; every class in every daypart on two days (`am`
+      23 + 24, `pm` 22 + 23, `eve` 22 + 23). Classes separate by eye in
+      both sensors (`figures/gate2/2026-11-24_two_days_grids.png`);
+      person-signature share empty 0–1.9%, seated 100%, present
+      97.9–99.2% by daypart. NOTES, "Second morning round; Gate 2 closes".
+      Tagged `phase2-data`.
 
-- [ ] **Per-frame labels for walking-past sessions — settle before Gate 3.**
+- [x] ~~Per-frame labels for walking-past sessions.~~ **Done 2026-11-24**:
+      seven sessions with per-frame labels from video — six walking past
+      (2026-11-22 22, 24; 2026-11-23 10, 22, 34; 2026-11-24 11) and the
+      mixed sit-and-stand session 2026-11-22 23 — every daypart covered.
       Session 12 (walking past) has a person in view in only ~54% of
       frames: 21 passes of 0.6–25 s with empty room between. Labelled
       `present` wholesale, the gaps would teach the model that an empty
@@ -185,8 +195,7 @@ Ordered by when it matters, not by size.
       video) dropped rather than labelled from heatmaps; replaced by 24
       (walking past, video, labelled). Session 23 — sat down and got up
       repeatedly — kept as a mixed session with per-frame labels.
-      Still to do: an afternoon walking-past session with video, to
-      replace 12's `pm` coverage. Not a
+      Afternoon session with video recorded 2026-11-23 (22). Not a
       detection heuristic: the auto-suggest is a starting point, and every
       frame is checked by eye, or the model just learns the rule.
 

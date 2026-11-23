@@ -8,8 +8,8 @@
 //! dropouts in two days, each gone on a retry; TODO.md, hardware loose ends).
 //!
 //! The standard fix (NXP UM10204 §3.1.16, "bus clear"): with the I2C
-//! peripheral off, drive SCL by hand for up to nine pulses until the target
-//! lets go of SDA, then send a STOP. A target that was idle ignores clocks
+//! peripheral off, drive SCL by hand for nine pulses so the target finishes
+//! whatever byte it was sending and lets go of SDA, then send a STOP. A target that was idle ignores clocks
 //! with no START, so doing this on every boot is harmless.
 //!
 //! Call it before `I2c::new_blocking` takes the pins. The pins are driven
@@ -23,7 +23,8 @@ use embassy_stm32::gpio::{Flex, Pin, Speed};
 pub struct Recovery {
     /// SDA was low with SCL released: a target was holding the bus.
     pub sda_was_stuck: bool,
-    /// SCL pulses it took for SDA to come back high (0 if it never was low).
+    /// Pulse on which SDA first read high (0 if it was never low, or never
+    /// came back). Nine pulses are sent whenever SDA was stuck.
     pub pulses: u8,
     /// Both lines high at the end: the bus is free.
     pub bus_free: bool,
@@ -46,14 +47,23 @@ pub fn recover(scl: Peri<'_, impl Pin>, sda: Peri<'_, impl Pin>) -> Recovery {
     sda.set_as_input_output(Speed::Low);
     half_period();
 
+    // If a target holds SDA, give it all nine clocks — not "until SDA goes
+    // high". A target mid-read shifts out its byte: SDA high after one pulse
+    // can just be a 1 bit, and stopping there leaves it still driving the
+    // next bit (seen 2026-11-24: released after 1 pulse, bus still busy;
+    // the retry needed 6). Nine clocks finish any byte plus its ACK slot.
     let sda_was_stuck = sda.is_low();
     let mut pulses = 0;
-    while sda.is_low() && pulses < 9 {
-        scl.set_low();
-        half_period();
-        scl.set_high();
-        half_period();
-        pulses += 1;
+    if sda_was_stuck {
+        for n in 1..=9 {
+            scl.set_low();
+            half_period();
+            scl.set_high();
+            half_period();
+            if pulses == 0 && sda.is_high() {
+                pulses = n;
+            }
+        }
     }
 
     // STOP: SDA low -> high while SCL is high. Leaves every target idle.
@@ -68,7 +78,7 @@ pub fn recover(scl: Peri<'_, impl Pin>, sda: Peri<'_, impl Pin>) -> Recovery {
 
     Recovery {
         sda_was_stuck,
-        pulses: if sda_was_stuck { pulses } else { 0 },
+        pulses,
         bus_free: scl.is_high() && sda.is_high(),
     }
     // The Flex pins drop here and go back to analog; the I2C driver
