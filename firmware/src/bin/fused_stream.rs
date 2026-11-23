@@ -79,6 +79,7 @@ use panic_probe as _;
 
 use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRate, PIXELS};
 use coworkos_firmware::clock;
+use coworkos_firmware::i2c_recovery;
 use coworkos_firmware::ism330dhcx::{self, Ism330dhcx, MICRO_G_PER_LSB, Tilt};
 use coworkos_firmware::vl53l5cx::bindings::{
     VL53L5CX_Configuration, VL53L5CX_ResultsData, vl53l5cx_check_data_ready, vl53l5cx_get_ranging_data,
@@ -93,6 +94,8 @@ type Bus = I2c<'static, Blocking, Master>;
 const TOF_ADDRESS_8BIT: u16 = 0x52;
 const RESOLUTION_8X8: u8 = 64;
 const RANGING_HZ: u8 = 5;
+/// AMG8833 probe attempts, each after a bus recovery, before giving up.
+const AMG_ATTEMPTS: u8 = 3;
 
 /// Thermal map band width, centidegrees above the frame median. Same as
 /// `thermal_probe`, so the two read alike.
@@ -113,7 +116,39 @@ async fn main(_spawner: Spawner) {
     cfg.frequency = Hertz::khz(100);
     // Long enough for the ULD's firmware download, which is one big write.
     cfg.timeout = Duration::from_millis(1000);
-    let mut bus = BusContext::new(I2c::new_blocking(p.I2C1, p.PB8, p.PB9, cfg));
+
+    // ---- Free the bus, then find the AMG8833 ----
+    // A run killed mid-transfer can leave a target holding SDA low, and the
+    // next start's probe fails (TODO.md). Clear the bus, probe with a
+    // short-lived driver, and try again a few times before giving up. The
+    // driver the ULD keeps is built only after this, from the owned pins.
+    let (mut i2c1, mut scl, mut sda) = (p.I2C1, p.PB8, p.PB9);
+    let mut amg_address = None;
+    for attempt in 1..=AMG_ATTEMPTS {
+        let r = i2c_recovery::recover(scl.reborrow(), sda.reborrow());
+        if r.sda_was_stuck || !r.bus_free {
+            warn!("I2C1 bus recovery (attempt {=u8}): {}", attempt, r);
+        }
+        let mut probe_bus = I2c::new_blocking(i2c1.reborrow(), scl.reborrow(), sda.reborrow(), cfg);
+        amg_address = [DEFAULT_ADDRESS, ALT_ADDRESS]
+            .into_iter()
+            .find(|&a| probe(&mut probe_bus, a));
+        drop(probe_bus);
+        if amg_address.is_some() {
+            if attempt > 1 {
+                warn!("AMG8833 found on attempt {=u8} of {=u8}", attempt, AMG_ATTEMPTS);
+            }
+            break;
+        }
+        warn!("no AMG8833 on attempt {=u8} of {=u8}", attempt, AMG_ATTEMPTS);
+        Timer::after(Duration::from_millis(200)).await;
+    }
+    let Some(amg_address) = amg_address else {
+        error!("no AMG8833 at 0x{=u8:02x} or 0x{=u8:02x}", DEFAULT_ADDRESS, ALT_ADDRESS);
+        stall().await;
+    };
+
+    let mut bus = BusContext::new(I2c::new_blocking(i2c1, scl, sda, cfg));
 
     // One bus, two drivers. The ULD keeps a raw pointer to the BusContext and
     // reaches the I2C through it in its callbacks; the AMG driver wants
@@ -150,15 +185,7 @@ async fn main(_spawner: Spawner) {
         }
     }
 
-    // ---- AMG8833 ----
-    let amg_address = if probe(amg_bus(), DEFAULT_ADDRESS) {
-        DEFAULT_ADDRESS
-    } else if probe(amg_bus(), ALT_ADDRESS) {
-        ALT_ADDRESS
-    } else {
-        error!("no AMG8833 at 0x{=u8:02x} or 0x{=u8:02x}", DEFAULT_ADDRESS, ALT_ADDRESS);
-        stall().await;
-    };
+    // ---- AMG8833 (address found above) ----
     let mut amg = Amg8833::new(amg_address);
     if let Err(e) = amg.init(amg_bus(), FrameRate::Fps10) {
         error!("AMG8833 init failed: {}", e);
@@ -403,7 +430,7 @@ fn thermal_shade(above_median: i16) -> u8 {
     }
 }
 
-fn probe(bus: &mut Bus, address: u8) -> bool {
+fn probe(bus: &mut I2c<'_, Blocking, Master>, address: u8) -> bool {
     let mut byte = [0u8; 1];
     bus.blocking_read(address, &mut byte).is_ok()
 }

@@ -114,6 +114,15 @@ Ordered by when it matters, not by size.
       Also: on that failure `fused_stream` halts but probe-rs keeps running,
       so the whole 815 s timed out with zero frames — check for frames ~30 s
       after every launch.
+      **Fix in, 2026-11-23:** `src/i2c_recovery.rs` (bus clear: up to 9
+      SCL pulses until SDA releases, then STOP) runs before the I2C driver
+      takes PB8/PB9, and `fused_stream` probes the AMG8833 up to 3 times,
+      recovering the bus before each. It logs only when it acts —
+      `I2C1 bus recovery (attempt n): sda_was_stuck …` or `AMG8833 found on
+      attempt n` — so the next dropout tells us whether the stuck-SDA
+      theory was right. Four timeout-killed restarts in a row: all clean,
+      no recovery needed. Still open: port to `main.rs` for Phase 4, and
+      make a give-up exit probe-rs instead of stalling.
       **Separate fault, same morning:** session 09 (reaching across the
       desk) lost the ST-LINK at 144 s — kernel `error -71`, USB
       re-enumerated a second later. A host-side cable/connector glitch, not
