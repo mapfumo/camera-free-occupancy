@@ -1943,3 +1943,25 @@ frames); the debounce removes all of it.
 **Open:** a second bent-over session in another daypart, so CV can confirm
 the fix on a round it never saw; and some hunched-sitting data to win back
 the seated recall.
+
+### Display driver, ahead of the hardware — 2026-11-24
+
+Wiring, harness, carrier and power: `docs/display_wiring.md`. The pins are
+SCK D13/PE13, SDI D11/PE15, CS D10/PE12, DC D8/PC1, RESET D9/PA8 (or tied
+high), all from Zephyr's board definition. That matches the two pins already
+proven by hand; UM2839 would not download.
+
+The driver is hand-written (`firmware/src/ili9341.rs`, ~250 lines, write-only,
+software CS) behind `embedded-graphics`, not a display crate: a dozen
+commands, all visible. Big text is the built-in 10×20 font scaled ×4 by a
+wrapper, so no large font in flash. Layout: `firmware/src/readout.rs`.
+
+**The SPI clock is 160 MHz / 2^n, rounded down.** Asking for 4 MHz gave
+2.5 (a full-screen fill took 499 ms, exactly the bit time at 2.5). It now
+asks for 5, so fills take 252 ms. Redrawing only the heatmap cells whose
+(16-step quantised) colour changed takes the map from 43 ms per frame to
+0.3–5 ms. State changes cost 0.16–0.19 s, only when they happen. All
+measured on the board's SPI with no display attached: the timing is the
+bus, not the panel.
+
+**Not yet tested on a panel.** `display_test` is the weekend's first step.

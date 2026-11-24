@@ -203,7 +203,10 @@ Ordered by when it matters, not by size.
 - [ ] Second bent-over session in a pm/eve round (CV can then test the
       fix on an unseen round), plus hunched sitting to recover seated recall.
 - [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
-      only, no touch.
+      only, no touch. Driver + layout + `display_test` written and timed
+      (2026-11-24); wiring in `docs/display_wiring.md`. Weekend: carrier
+      (standoffs), 8-way harness, bench test, mount, re-check tilt and
+      empty-scene. Then wire the readout into the application loop.
 - [ ] Port bus recovery + ICACHE into `main.rs` when the application binary
       takes over from `fused_stream`.
 
