@@ -187,11 +187,16 @@ Ordered by when it matters, not by size.
 - [x] ~~Debounce rule.~~ 2026-11-24: 8 in a row (1.6 s), chosen by
       simulation on real prediction streams; 0 false empty↔occupied changes
       in 2.9 h, lag ≤ 2.6 s. NOTES, "Choosing the debounce rule".
-- [ ] **Live scripted test** (stage 2): ~10 min script with webcam ground
-      truth — empty, walk in and sit, stand, sit and lean back, walk out,
-      walk past, empty. Score the board's state lines against the labels:
-      lag per change, false changes, walking-past-as-seated. Also the
-      all-classes parity run.
+- [x] ~~Live scripted test~~ (stage 2). 2026-11-24, 10.8 min: 0 false
+      empty↔occupied changes, 12/12 caught, walk-pasts never `seated`;
+      parity 3,255/3,255 all classes. One real error: ~16 s `seated` while
+      standing bent over the keyboard (model, not debounce). Two entries
+      3.4 / 4.2 s. NOTES, "Live scripted test".
+- [ ] **Two debouncers** — empty↔occupied and seated↔present separately, so
+      class flips don't delay the occupied report. Simulate in
+      `ml/debounce.py` first, then firmware.
+- [ ] **Record `present` bent over the desk / keyboard** — the posture the
+      model calls `seated`. Add to the dataset, retrain, re-check.
 - [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
       only, no touch.
 - [ ] Port bus recovery + ICACHE into `main.rs` when the application binary

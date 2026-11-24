@@ -13,3 +13,8 @@ __pycache__/
 # Gate 3 training environment and run outputs (results worth keeping are committed under ml/results/)
 ml/.venv/
 ml/runs/
+
+# Live-trial webcam ground truth: local only, same as sessions/video/
+trials/video/
+trials/*.csv
+trials/*.log

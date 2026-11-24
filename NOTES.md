@@ -1795,3 +1795,61 @@ each change and a `state` heartbeat once a second; first report at frame 8 as
 designed. The same run started on a stuck I2C bus and the nine-pulse
 recovery freed it on the **first** attempt (`sda_was_stuck: true, pulses: 1,
 bus_free: true`) — the fix confirmed on hardware.
+
+### Live scripted test — 2026-11-24
+
+Gate 4 stage 2: the whole path on the real board (sensors → `encode.rs` →
+ST C model → 8-in-a-row debounce), 10.8 min, scored against hand labels.
+Data in `trials/` (log, paired frames, labels; webcam local only, like
+`sessions/video/`). Scored with `tools/score_live.py`.
+
+Script: out → walk in and sit → stand at the desk → sit, lean back → walk
+out → walk past several times → out. Reality drifted from it (recording
+started with me still in the chair; I sat down once during the walk-past
+step; I came back at the end to type a reply), which made it a better test,
+not a worse one. Labels: Tony's empty/occupied boundaries, seated stretches
+placed from the webcam frames by Claude and checked by Tony on the
+contested stretch (frames 1420–1446: **bent over the keyboard, standing**).
+
+**Parity, all classes:** 3,255 / 3,255 frames the same class on board and PC
+(1,149 empty, 1,737 seated, 369 present), max logit diff 9.8e-6, 8.2 ms per
+inference. This is the all-classes parity run the first (106-frame, mostly
+seated) check lacked.
+
+| | result |
+|---|---|
+| false empty↔occupied changes | **0** |
+| empty↔occupied changes caught | **12 / 12**, lag median 2.0 s, max 4.2 s |
+| quick walk-pasts (3) reported | **present every time, never seated** |
+| false class changes | **1**: frame 1433, `seated` for ~16 s while standing bent over the keyboard |
+| class-change lag | median 1.4 s, max 3.4 s |
+| per-frame agreement | debounced 91.9 %, raw model 94.8 % |
+
+**The one real error is the model, not the debounce.** Frames 1426–1511 the
+raw model said `seated` on 86 of 86 frames: no debounce rule can remove
+that. Standing bent over the desk puts the head and shoulders low over the
+seat — from above, a seated silhouette. Same family as the bent-over-the-
+chair walk→seated episode in "Choosing the debounce rule". The training data
+has no session of this posture labelled `present`. At the end of the run,
+bent over the chair *back* to type, the model got it mostly right (44 of 51
+frames `present`).
+
+**Slow entries (3.4 s, 4.2 s against a 3 s bar).** Two causes:
+- ~1.6 s of each is before the sensor sees anyone: labels mark the moment I
+  appear on the webcam, the model says `empty` until I reach the sensor's
+  view (frames 704–711 and 2196–2203 are `empty` in the raw stream). That is
+  field of view, not lag.
+- The 4.2 s one: walking in and sitting straight down, the raw class flipped
+  present/seated, and each flip restarted the 8-frame count, so even
+  *occupied* waited for the class to settle. Both classes mean occupied —
+  the building should have been told sooner. Fix to try: **two debouncers**,
+  one on empty-vs-occupied (feeds the BACnet Binary Input) and one on
+  seated-vs-present.
+
+**"Missed" changes (3):** the 3–4 s of `present` while getting up and
+leaving; the board went `seated` → `empty` directly. Harmless for a
+building; recorded, not fixed.
+
+**Next:** simulate the two-debouncer rule in `ml/debounce.py` before
+touching firmware; record a `present` session bent over the desk and keyboard
+so the model sees the posture it gets wrong.
