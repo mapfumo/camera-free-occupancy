@@ -29,7 +29,10 @@ data, every real change within 3 s, walking past never reported `seated`.
     ml/.venv/bin/python ml/debounce.py
 """
 
+import csv
+import gzip
 import os
+import re
 import sys
 
 import numpy as np
@@ -98,8 +101,53 @@ def ema(alpha, margin=0.0):
     return rule
 
 
+def two(n_occ, n_cls):
+    """Two debouncers: occupancy (empty vs occupied) and, inside occupied,
+    seated vs present — each "N in a row".
+
+    With one debouncer over three classes, a person walking in and sitting
+    straight down flips present/seated, every flip restarts the count, and
+    even *occupied* waits for the class to settle. Here occupancy counts any
+    non-empty frame, so those flips no longer delay it. The class debouncer
+    sees only non-empty frames and starts afresh on each visit; until it has
+    settled, the reported class is the more frequent of seated/present so far
+    in this visit (provisional).
+    """
+    def rule(p):
+        c = p.argmax(1)
+        out = np.empty(len(c), int)
+        occ = bool(c[0] != EMPTY)
+        o_cand, o_run = occ, 0
+        cls = int(c[0]) if occ else None
+        k_cand, k_run, counts = None, 0, np.zeros(3, int)
+        for i, x in enumerate(c):
+            o = bool(x != EMPTY)
+            o_run = o_run + 1 if o == o_cand else 1
+            o_cand = o
+            if o_cand != occ and o_run >= n_occ:
+                occ = o_cand
+            if not occ and not o:  # a visit is over: forget its class
+                cls, k_cand, k_run, counts = None, None, 0, np.zeros(3, int)
+            if o:
+                counts[x] += 1
+                k_run = k_run + 1 if x == k_cand else 1
+                k_cand = int(x)
+                if k_run >= n_cls:
+                    cls = k_cand
+            if not occ:
+                out[i] = EMPTY
+            elif cls is not None:
+                out[i] = cls
+            else:
+                out[i] = SEATED if counts[SEATED] > counts[PRESENT] else PRESENT
+        return out
+    rule.__name__ = f"two: occ {n_occ}, class {n_cls}"
+    return rule
+
+
 RULES = [raw, majority(5), majority(10), majority(15), streak(3), streak(5),
-         streak(8), streak(10), ema(0.3), ema(0.2), ema(0.2, 0.2), ema(0.1)]
+         streak(8), streak(10), ema(0.3), ema(0.2), ema(0.2, 0.2), ema(0.1),
+         two(8, 8), two(5, 8), two(3, 8), two(5, 10)]
 
 
 # ---------------------------------------------------------------- data -----
@@ -181,6 +229,60 @@ def episodes(y, cls, min_len):
     return out
 
 
+LIVE = "2026-11-24_live"
+INFER = re.compile(r"infer frame (\d+): \w+ \S+ \| p (\S+) (\S+) (\S+) \|")
+
+
+def live_test():
+    """Replay the board's own probabilities from the live scripted test
+    (trials/, NOTES "Live scripted test") against its hand labels."""
+    root = os.path.dirname(HERE)
+    log = os.path.join(root, "trials", f"{LIVE}.log.gz")
+    lab = os.path.join(root, "trials", f"{LIVE}_full.labels.csv.gz")
+    if not (os.path.exists(log) and os.path.exists(lab)):
+        return [f"live test: {LIVE} not found, skipped"]
+    probs = {}
+    with gzip.open(log, "rt", errors="replace") as f:
+        for line in f:
+            m = INFER.search(line)
+            if m:
+                probs[int(m.group(1))] = [float(m.group(i)) for i in (2, 3, 4)]
+    labels = {}
+    with gzip.open(lab, "rt") as f:
+        for r in csv.DictReader(f):
+            if r["label"] in CLASSES:
+                labels[int(r["frame"])] = CLASSES.index(r["label"])
+    frames = [n for n in sorted(probs) if n in labels]
+    p = np.array([probs[n] for n in frames])
+    y = np.array([labels[n] for n in frames])
+
+    def false_changes(rep, truth):
+        out = 0
+        for i in np.where(np.diff(rep) != 0)[0] + 1:
+            if rep[i] not in truth[max(0, i - 3 * HZ): i + 1]:
+                out += 1
+        return out
+
+    lines = [f"live test ({LIVE}, board probabilities, {len(frames) / HZ / 60:.1f} min, "
+             f"{int((np.diff(y) != 0).sum())} labelled changes)",
+             "",
+             f"{'rule':22s} {'false occ':>9s} {'false class':>11s} {'occ lag':>9s} {'occ max':>8s} "
+             f"{'lag median':>10s} {'lag max':>8s} {'pres->seated':>12s}"]
+    yo = (y != EMPTY).astype(int)
+    for rule in RULES:
+        rep = rule(p)
+        ro = (rep != EMPTY).astype(int)
+        lags, _ = transition_stats(y, rep)
+        olags, _ = transition_stats(yo, ro)
+        lags = np.array([x for x in lags if np.isfinite(x)])
+        olags = np.array(olags)
+        lines.append(
+            f"{rule.__name__:22s} {false_changes(ro, yo):9d} {false_changes(rep, y):11d} "
+            f"{np.median(olags):8.1f}s {olags.max():7.1f}s {np.median(lags):9.1f}s {lags.max():7.1f}s "
+            f"{int(((y == PRESENT) & (rep == SEATED)).sum()):12d}")
+    return lines
+
+
 def main():
     d = load_all()
     prob = np.load(os.path.join(HERE, "runs", "cnn_cv_prob_seed0.npy"))
@@ -198,16 +300,19 @@ def main():
              f"walking: {len(walking)} sessions",
              "",
              f"{'rule':22s} {'false occ':>9s} {'false class':>11s} {'lag median':>10s} {'lag max':>8s} "
-             f"{'extra':>6s} {'walk agree':>10s} {'walk->seated':>12s}"]
+             f"{'occ lag':>9s} {'occ max':>8s} {'extra':>6s} {'walk agree':>10s} {'walk->seated':>12s}"]
     for rule in RULES:
         flaps = sum(changes(rule(x[3])[WARMUP:]) for x in steady)
         # the building's question: empty vs occupied, ignoring seated/present
         occ_flaps = sum(changes((rule(x[3])[WARMUP:] != EMPTY).astype(int)) for x in steady)
-        lags, extra = [], 0
+        lags, extra, olags = [], 0, []
         for _, y, p in ch:
-            l, e = transition_stats(y, rule(p))
+            rep = rule(p)
+            l, e = transition_stats(y, rep)
             lags += l
             extra += e
+            ol, _ = transition_stats((y != EMPTY).astype(int), (rep != EMPTY).astype(int))
+            olags += ol
         agree, n, to_seated = 0, 0, 0
         for _, _, y, p in walking:
             rep = rule(p)
@@ -217,10 +322,12 @@ def main():
             if name.endswith("2026-11-22_23_present-marked"):
                 continue  # the sit-and-stand session really does contain seated
             to_seated += (rule(p) == SEATED).sum()
-        lags = np.array(lags)
+        lags, olags = np.array(lags), np.array(olags)
         lines.append(
             f"{rule.__name__:22s} {occ_flaps:9d} {flaps:11d} {np.median(lags):9.1f}s {lags.max():7.1f}s "
+            f"{np.median(olags):8.1f}s {olags.max():7.1f}s "
             f"{extra:6d} {agree / n:10.1%} {to_seated:12d}")
+    lines += ["", *live_test()]
     text = "\n".join(lines)
     print(text)
     with open(os.path.join(HERE, "results", "debounce.txt"), "w") as f:

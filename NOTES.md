@@ -1853,3 +1853,48 @@ building; recorded, not fixed.
 **Next:** simulate the two-debouncer rule in `ml/debounce.py` before
 touching firmware; record a `present` session bent over the desk and keyboard
 so the model sees the posture it gets wrong.
+
+### Two debouncers — 2026-11-24
+
+The live test's 4.2 s entry: walking in and sitting straight down, the raw
+class flipped present/seated, every flip restarted the single 8-in-a-row
+count, and *occupied* waited for the class to settle. Both classes mean
+occupied, so the fix is structural: **two debouncers**, same N.
+
+- **occupancy** — 8 in a row on empty vs non-empty. Feeds the BACnet
+  Binary Input.
+- **class** — 8 in a row on seated vs present, fed only non-empty frames,
+  reset at the end of each visit. Until it holds, the reported class is
+  provisional: the more frequent of seated/present so far this visit,
+  `present` on a tie (the first version broke ties toward `seated` and added
+  frames of walk→seated).
+
+`ml/debounce.py` now also replays the **board's own probabilities** from the
+live test (`trials/`) against its labels, beside the offline tests
+(`ml/results/debounce.txt`):
+
+| rule | offline false occ / class | offline walk→seated | live false occ / class | live occupied lag max | live class lag max |
+|---|---|---:|---|---:|---:|
+| 8 in a row (single) | 0 / 2 | 23 | 0 / 1 | 4.2 s | 3.4 s |
+| **two: occ 8, class 8** | **0 / 2** | 25 | **0 / 1** | **3.0 s** | **3.0 s** |
+| two: occ 5, class 8 | 0 / 2 | 25 | 1 / 2 | 2.4 s | 2.8 s |
+| two: occ 3, class 8 | 0 / 2 | 25 | 3 / 4 | 2.0 s | 2.2 s |
+
+The single rule replayed gives 4.2 s — exactly what the board printed, so
+the replay is faithful.
+
+**Chosen: two, occ 8, class 8.** No new false changes anywhere; the worst
+live entry drops to 3.0 s, inside the bar. A shorter occupancy count is
+faster but starts to flap at visit edges (occ 5: one change a frame ahead of
+the label; occ 3: three). Cost: 2 more walk→seated frames offline (25 vs 23,
+0.4 s), from the provisional class at the start of a pass.
+
+**Firmware:** `firmware/src/debounce.rs` — same `update(class) ->
+Option<state>` API, plus `occupied()` for the BACnet object. Checked by
+compiling the module for the host and feeding it the live test's 3,255
+board classes: **0 mismatches** against the Python `two(8, 8)` after the
+first report. On the board: first report at frame 8 as before.
+
+The one real live error — ~16 s `seated` while standing bent over the
+keyboard — is untouched, as expected: the raw model is wrong on every frame
+of it. That needs data, not debouncing.

@@ -192,9 +192,10 @@ Ordered by when it matters, not by size.
       parity 3,255/3,255 all classes. One real error: ~16 s `seated` while
       standing bent over the keyboard (model, not debounce). Two entries
       3.4 / 4.2 s. NOTES, "Live scripted test".
-- [ ] **Two debouncers** — empty↔occupied and seated↔present separately, so
-      class flips don't delay the occupied report. Simulate in
-      `ml/debounce.py` first, then firmware.
+- [x] ~~Two debouncers.~~ 2026-11-24: occupancy and class each 8 in a row;
+      live worst entry 4.2 → 3.0 s, no new false changes offline or live.
+      Rust matches the Python simulation on all 3,255 live frames.
+      NOTES, "Two debouncers".
 - [ ] **Record `present` bent over the desk / keyboard** — the posture the
       model calls `seated`. Add to the dataset, retrain, re-check.
 - [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
