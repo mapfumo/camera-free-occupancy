@@ -6,12 +6,12 @@ sensor and an 8×8 thermal array are read by an STM32U585, fused into one
 BACnet / InfluxDB / Grafana building-monitoring stack.
 
 > **Status: live inference (Gate 4 of 8).** A small CNN (11,091
-> parameters) classifies `empty` / `seated` / `present` at **99.1%** on
-> recording rounds it never trained on, and fits the STM32U585 in ~49 KiB of
-> flash and 5.75 KiB of RAM. Trained on 70 labelled sessions (57,516
-> frames). Not yet running on the device. There is no
-> model or on-device inference yet. See [Status](#status) for exactly what
-> works.
+> parameters) runs on the STM32U585 every frame (8.2 ms, ~49 KiB flash,
+> 5.75 KiB RAM) and matches the PC bit-for-bit in class. In a 10.8-minute
+> live scripted test it made no false empty↔occupied change and caught 12 of
+> 12 real ones. On recording rounds it never trained on it scores ~99%
+> (71 labelled sessions, 58,451 frames). Display and gateway integration
+> are next. See [Status](#status) for exactly what works.
 
 *CoworkOS* is the project's working name, and the docs still use it.
 
@@ -181,6 +181,12 @@ frames; nearly all remaining errors are at the edges of walking passes. On
 the STM32U585 (ST Edge AI Core 4.0, float32): ~49 KiB flash, 5.75 KiB RAM,
 186,787 MACC per inference; the generated C model matches PyTorch.
 
+The deployed model (2026-11-24) adds one session of standing bent over the
+keyboard, a posture the first model called `seated` on every frame. On the
+live test, which no model trained on, that stretch goes from 0% to 86–99%
+`present`; the price is ~0.5 pt of seated recall on hunched sitting. Scored
+with `ml/live_eval.py`; see NOTES, "Retraining for the bent-over posture".
+
 ```bash
 python3 -m venv ml/.venv && ml/.venv/bin/pip install torch scikit-learn onnx onnxruntime \
     --extra-index-url https://download.pytorch.org/whl/cpu
@@ -218,7 +224,7 @@ details the phases).
 | 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
 | 2 | Dataset — labelled classes, separable by eye as heatmaps | done — `phase2-data` |
 | 3 | Model — confusion matrix on held-out data | done — `phase3-model` |
-| 4 | Live inference + on-device readout | **next** |
+| 4 | Live inference + on-device readout | **in progress** — inference and debounce done; display next |
 | 5 | Integrated into BACnet / Grafana | |
 | 6 | Same firmware in C/FreeRTOS, measured against this one | |
 | 7 | Validated over a multi-day real-room run | |
@@ -228,16 +234,19 @@ details the phases).
 FFI and ranging live; the AMG8833 driver in safe Rust; both grids in one world
 frame and registered against each other; the rig re-aimed at the desk, where
 both sensors clearly separate a seated person from an empty chair; a paired
-two-sensor stream at 5 Hz; the host-side viewer and CSV recorder; 70
+two-sensor stream at 5 Hz; the host-side viewer and CSV recorder; 71
 labelled sessions in which `empty`, `seated` and `present` separate by eye in
-every daypart; the model input encoding.
+every daypart; the model input encoding; the CNN running on the board every
+frame (ST Edge AI C over FFI, 8.2 ms), with two debouncers (occupancy and
+class, 8 frames in a row each) turning frames into a reported state; a
+stuck-bus recovery on the I2C line. A 10.8-minute live scripted test scored
+against webcam labels: 0 false empty↔occupied changes, 12/12 caught.
 
 A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
-**Next:** Gate 4 — generate the C model with ST Edge AI, link it into the
-firmware over FFI, infer every 1–2 s with debounce, and show the result on
-the ILI9341. The working list is [`TODO.md`](TODO.md).
+**Next:** Gate 4 — show the state on the ILI9341 (class, confidence, small
+live heatmap), mounted on the pole. The working list is [`TODO.md`](TODO.md).
 
 ## Documentation
 

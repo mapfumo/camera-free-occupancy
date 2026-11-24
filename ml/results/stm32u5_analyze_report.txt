@@ -1,5 +1,5 @@
 ST Edge AI Core v4.0.1-20581 7ed50de05
-Created date          : 2026-11-24 08:12:57
+Created date          : 2026-11-24 16:22:24
 Parameters            : analyze --model ml/results/occupancy_cnn.onnx --target stm32u5 --name occupancy --workspace ml/runs/st/ws --output ml/runs/st/out
 
 Exec/report summary (analyze)
@@ -15,7 +15,7 @@ workspace dir      :   /home/tony/dev/6-month-plan/coworkos/ml/runs/st/ws
 output dir         :   /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out                  
 model_fmt          :   float                                                                
 model_name         :   occupancy_cnn                                                        
-model_hash         :   0xccbb92aac5c1ff6b7b8100753cad82b3                                   
+model_hash         :   0x2813a33decfa1464d7d4ebbd6ff0b899                                   
 params #           :   11,091 items (43.32 KiB)                                             
 --------------------------------------------------------------------------------------------
 input 1/1          :   'input', f32(1x3x8x8), 768 Bytes, activations                        

@@ -1898,3 +1898,48 @@ first report. On the board: first report at frame 8 as before.
 The one real live error — ~16 s `seated` while standing bent over the
 keyboard — is untouched, as expected: the raw model is wrong on every frame
 of it. That needs data, not debouncing.
+
+### Retraining for the bent-over posture — 2026-11-24
+
+The live test's one real error (standing bent over the keyboard → `seated`,
+every frame) is the model, so the fix is data. Session
+`2026-11-24_13_present-marked`: 3 min standing bent over the keyboard and
+desk, never sitting (verified on the webcam; wearing a shirt, unlike the
+live test — a useful difference). **The deployed model called all 938 of its
+frames `seated`.**
+
+**Scored on the live test** (`ml/live_eval.py`) — a separate recording no
+model trains on, so it is held out from every candidate:
+
+| | all | occupancy | empty | seated | present | bent-over stretch → present |
+|---|---:|---:|---:|---:|---:|---:|
+| deployed (v1) | 94.8% | 98.3% | 99.6% | 99.7% | 69.1% | 0.0% |
+| without s13, seeds 0–2 | 92.8–94.8% | 96.6–98.2% | 95.9–99.5% | 99.8–99.9% | 64.5–68.9% | 0.0–2.3% |
+| **with s13, seeds 0–2** | **95.5–96.5%** | 97.4–98.1% | 96.6–99.8% | 99.0–99.3% | **81.0–82.1%** | **86.0–98.8%** |
+
+**Leave-one-round-out, 3 seeds** (`ml/results/cnn_cv_seeds.txt`): 97.3–97.4%
+pooled, but that includes s13 itself, which is 100% wrong when its round is
+held out — it is the only session of the posture, so CV cannot yet show the
+fix generalising; only the live test can. **Excluding s13's frames: 98.9–99.0%**
+(v1: 99.1%). The trade: seated→present 141–194 frames (v1 ~44–80), 100–112
+of them in `2026-11-22_23` (repeated sit-and-stand, hunched sitting);
+present→seated 37–40 (v1 43–80). Seated recall −0.5 pt; empty↔occupied
+unaffected.
+
+**Deployed** (Tony's call, on that trade): `train.py --final` →
+`st_check.sh` (validate 100%, rmse 1.7e-6) → `stedgeai generate` →
+`firmware/vendor/ai_model/`. Same size: 11,091 parameters, 43.3 KiB weights,
+5.75 KiB activations, 186,787 MACC. On the board: parity 293/293 and again
+332/332 (max logit diff 7.5e-6), 8.2 ms. Live check: seated ~53 s, then
+standing bent over the keyboard — raw `present` within a few frames, state
+`present` at frame 282. v1 said `seated` throughout.
+
+**Debounce re-simulated on v2's out-of-fold streams** (`ml/results/debounce.txt`):
+two(8, 8) — 0 false empty↔occupied, **0 false class changes** (v1: 2), lag
+max 1.4 s offline, walk→seated 15 frames (v1: 25). The raw stream does flicker
+to `empty` for single frames in one seated session (`2026-11-23_18`, 22
+frames); the debounce removes all of it.
+
+**Open:** a second bent-over session in another daypart, so CV can confirm
+the fix on a round it never saw; and some hunched-sitting data to win back
+the seated recall.

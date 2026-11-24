@@ -196,8 +196,12 @@ Ordered by when it matters, not by size.
       live worst entry 4.2 → 3.0 s, no new false changes offline or live.
       Rust matches the Python simulation on all 3,255 live frames.
       NOTES, "Two debouncers".
-- [ ] **Record `present` bent over the desk / keyboard** — the posture the
-      model calls `seated`. Add to the dataset, retrain, re-check.
+- [x] ~~Record `present` bent over the desk / keyboard, retrain.~~
+      2026-11-24: session 13; on the live test the bent-over stretch goes
+      0% → 86–99% `present`; seated recall −0.5 pt. Deployed (v2), parity
+      on the board. NOTES, "Retraining for the bent-over posture".
+- [ ] Second bent-over session in a pm/eve round (CV can then test the
+      fix on an unseen round), plus hunched sitting to recover seated recall.
 - [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
       only, no touch.
 - [ ] Port bus recovery + ICACHE into `main.rs` when the application binary

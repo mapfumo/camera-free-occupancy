@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    occupancy.h
   * @author  AST Embedded Analytics Research Platform
-  * @date    2026-11-24T08:43:25+1000
+  * @date    2026-11-24T16:22:46+1000
   * @brief   ST.AI Tool Automatic Code Generator for Embedded NN computing
   ******************************************************************************
   * @attention
@@ -24,11 +24,11 @@
 /*****************************************************************************/
 /*  Original model name and signature  */
 #define STAI_OCCUPANCY_ORIGIN_MODEL_NAME         "occupancy_cnn"
-#define STAI_OCCUPANCY_ORIGIN_MODEL_SIGNATURE    "0xccbb92aac5c1ff6b7b8100753cad82b3"
+#define STAI_OCCUPANCY_ORIGIN_MODEL_SIGNATURE    "0x2813a33decfa1464d7d4ebbd6ff0b899"
 
 /*  Generated model name and signature  */
 #define STAI_OCCUPANCY_MODEL_NAME                "occupancy"
-#define STAI_OCCUPANCY_MODEL_SIGNATURE           (0xe31f0e141fd062e7)
+#define STAI_OCCUPANCY_MODEL_SIGNATURE           (0xb39956674855b68a)
 
 
 /*****************************************************************************/

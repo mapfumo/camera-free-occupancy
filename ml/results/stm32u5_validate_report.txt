@@ -1,6 +1,6 @@
 ST Edge AI Core v4.0.1-20581 7ed50de05
-Created date          : 2026-11-24 08:13:12
-Parameters            : validate --model ml/results/occupancy_cnn.onnx --target stm32u5 --name occupancy --mode host --valinput ml/results/val_inputs.npy --valoutput ml/results/val_outputs.npy --classifier --workspace ml/runs/st/ws --output ml/runs/st/out
+Created date          : 2026-11-24 16:22:31
+Parameters            : validate --model ml/results/occupancy_cnn.onnx --target stm32u5 --name occupancy --workspace ml/runs/st/ws --output ml/runs/st/out --mode host --classifier --valinput ml/results/val_inputs.npy --valoutput ml/results/val_outputs.npy
 
 Exec/report summary (validate)
 --------------------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ vinput files       :   /home/tony/dev/6-month-plan/coworkos/ml/results/val_input
 voutput files      :   /home/tony/dev/6-month-plan/coworkos/ml/results/val_outputs.npy      
 model_fmt          :   float                                                                
 model_name         :   occupancy_cnn                                                        
-model_hash         :   0xccbb92aac5c1ff6b7b8100753cad82b3                                   
+model_hash         :   0x2813a33decfa1464d7d4ebbd6ff0b899                                   
 params #           :   11,091 items (43.32 KiB)                                             
 --------------------------------------------------------------------------------------------
 input 1/1          :   'input', f32(1x3x8x8), 768 Bytes, activations                        
@@ -155,8 +155,8 @@ Setting validation data...
  loading file: /home/tony/dev/6-month-plan/coworkos/ml/results/val_inputs.npy
  loading file: /home/tony/dev/6-month-plan/coworkos/ml/results/val_outputs.npy
    samples are reshaped: (300, 3) -> (300, 1, 1, 3)
-   I[1]: (300, 3, 8, 8)/float32, min/max=[-4.750000, 5.750000], mean/std=[0.522670, 0.774183]
-   O[1]: (300, 1, 1, 3)/float32, min/max=[-27.484678, 35.542721], mean/std=[1.789112, 10.518858]
+   I[1]: (300, 3, 8, 8)/float32, min/max=[-3.375000, 6.000000], mean/std=[0.530150, 0.779158]
+   O[1]: (300, 1, 1, 3)/float32, min/max=[-28.365189, 33.022408], mean/std=[1.968509, 10.530718]
  
 Running the ST.AI c-model (AI RUNNER)...(name=occupancy, mode=HOST)
 
@@ -170,8 +170,8 @@ Running the ST.AI c-model (AI RUNNER)...(name=occupancy, mode=HOST)
   activations         :   5888                                             
   weights             :   44364                                            
   macc                :   186787                                           
-  hash                :   0xccbb92aac5c1ff6b7b8100753cad82b3               
-  compile_datetime    :   Nov 24 2026 08:13:12                             
+  hash                :   0x2813a33decfa1464d7d4ebbd6ff0b899               
+  compile_datetime    :   Nov 24 2026 16:22:31                             
   -------------------------------------------------------------------------
   protocol            :   DLL Driver v2.0 - Direct Python binding          
   tools               :   ST.AI (st-ai api) v4.0.1                         
@@ -186,7 +186,7 @@ Running the ST.AI c-model (AI RUNNER)...(name=occupancy, mode=HOST)
   ST.AI Profiling results v2.0 - "occupancy"
   ------------------------------------------------------------
   nb sample(s)   :   300                                      
-  duration       :   0.103 ms by sample (0.096/0.138/0.005)   
+  duration       :   0.102 ms by sample (0.095/0.132/0.006)   
   macc           :   186787                                   
   ------------------------------------------------------------
   
@@ -194,15 +194,15 @@ Running the ST.AI c-model (AI RUNNER)...(name=occupancy, mode=HOST)
   -----------------------------------------------------------------------------------
   tensor   #     type[shape]:size         min      max     mean      std  name       
   -----------------------------------------------------------------------------------
-  I.0      300   f32[1,3,8,8]:768      -4.750    5.750    0.523    0.774  input_1    
-  O.0      300   f32[1,3]:12          -27.485   35.543    1.789   10.519  output_1   
+  I.0      300   f32[1,3,8,8]:768      -3.375    6.000    0.530    0.779  input_1    
+  O.0      300   f32[1,3]:12          -28.365   33.022    1.969   10.531  output_1   
   -----------------------------------------------------------------------------------
  
 Saving validation data...
  output directory: /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out
  creating /home/tony/dev/6-month-plan/coworkos/ml/runs/st/out/occupancy_val_io.npz
- m_outputs_1: (300, 3)/float64, min/max=[-27.484684, 35.542725], mean/std=[1.789112, 10.518858], logits
- c_outputs_1: (300, 1, 1, 3)/float32, min/max=[-27.484682, 35.542725], mean/std=[1.789112, 10.518858], logits
+ m_outputs_1: (300, 3)/float64, min/max=[-28.365189, 33.022408], mean/std=[1.968509, 10.530718], logits
+ c_outputs_1: (300, 1, 1, 3)/float32, min/max=[-28.365191, 33.022408], mean/std=[1.968510, 10.530719], logits
 
  
 Computing the metrics...
@@ -212,13 +212,13 @@ Computing the metrics...
  notes: - computed against the provided ground truth values
         - 300 samples (3 items per sample)
 
-  acc=100.00% rmse=0.000001819 mae=0.000001268 l2r=0.000000170 mean=-0.000000 std=0.000002 snr=135.367374 nse=1.000000 cos=1.000000 
+  acc=100.00% rmse=0.000001709 mae=0.000001240 l2r=0.000000159 mean=0.000000 std=0.000002 snr=135.945892 nse=1.000000 cos=1.000000 
  
   Confusion matrix (axis=-1) - 3 classes (300 samples)
   -----------------------
-  C0       133   .    .  
-  C1        .   95    .  
-  C2        .    .   72  
+  C0       130   .    .  
+  C1        .   86    .  
+  C2        .    .   84  
 
  Accuracy report #1 for the reference model
  ----------------------------------------------------------------------------------------------------
@@ -227,13 +227,13 @@ Computing the metrics...
         - computed against the provided ground truth values
         - 300 samples (3 items per sample)
 
-  acc=100.00% rmse=0.000001865 mae=0.000001283 l2r=0.000000175 mean=0.000000 std=0.000002 snr=135.151539 nse=1.000000 cos=1.000000 
+  acc=100.00% rmse=0.000001562 mae=0.000001134 l2r=0.000000146 mean=-0.000000 std=0.000002 snr=136.724634 nse=1.000000 cos=1.000000 
  
   Confusion matrix (axis=-1) - 3 classes (300 samples)
   -----------------------
-  C0       133   .    .  
-  C1        .   95    .  
-  C2        .    .   72  
+  C0       130   .    .  
+  C1        .   86    .  
+  C2        .    .   84  
 
  Cross accuracy report #1 (reference vs C-model)
  ----------------------------------------------------------------------------------------------------
@@ -241,13 +241,13 @@ Computing the metrics...
         - the output of the reference model is used as ground truth/reference value
         - 300 samples (3 items per sample)
 
-  acc=100.00% rmse=0.000001332 mae=0.000000881 l2r=0.000000125 mean=-0.000000 std=0.000001 snr=138.075361 nse=1.000000 cos=1.000000 
+  acc=100.00% rmse=0.000001369 mae=0.000000958 l2r=0.000000128 mean=0.000000 std=0.000001 snr=137.873144 nse=1.000000 cos=1.000000 
  
   Confusion matrix (axis=-1) - 3 classes (300 samples)
   -----------------------
-  C0       133   .    .  
-  C1        .   95    .  
-  C2        .    .   72  
+  C0       130   .    .  
+  C1        .   86    .  
+  C2        .    .   84  
 
 
 Number of operations per c-layer
@@ -278,15 +278,15 @@ Complexity report (model)
 ------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
 m_id   name                                    c_macc                    c_rom                     c_id     c_dur    l2r (X-CROSS)      
 ------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
-7      head_1_weight                           |                  4.4%   ||||||||||||||||  74.2%   [7]        6.2%                      
-9      head_3_weight                           |                  0.1%   |                  0.9%   [9]        1.3%   1.24805013e-07 *   
-1      _features_features_0_Conv_output_0      |||               14.8%   |                  4.0%   [1]       14.0%                      
-2      _features_features_1_Relu_output_0      |                  0.6%   |                  0.0%   [0, 2]     6.4%                      
-3      _features_features_2_Conv_output_0      ||||||||||||||||  79.0%   |||||             20.9%   [3]       62.9%                      
+7      head_1_weight                           |                  4.4%   ||||||||||||||||  74.2%   [7]        6.1%                      
+9      head_3_weight                           |                  0.1%   |                  0.9%   [9]        1.3%   1.27744727e-07 *   
+1      _features_features_0_Conv_output_0      |||               14.8%   |                  4.0%   [1]       14.1%                      
+2      _features_features_1_Relu_output_0      |                  0.6%   |                  0.0%   [0, 2]     6.1%                      
+3      _features_features_2_Conv_output_0      ||||||||||||||||  79.0%   |||||             20.9%   [3]       63.6%                      
 4      _features_features_3_Relu_output_0      |                  0.5%   |                  0.0%   [4]        3.9%                      
 5      _features_features_4_MaxPool_output_0   |                  0.5%   |                  0.0%   [5]        1.7%                      
-6      _head_head_0_Flatten_output_0           |                  0.1%   |                  0.0%   [6]        2.3%                      
-8      _head_head_2_Relu_output_0              |                  0.0%   |                  0.0%   [8]        1.3%                      
+6      _head_head_0_Flatten_output_0           |                  0.1%   |                  0.0%   [6]        2.1%                      
+8      _head_head_2_Relu_output_0              |                  0.0%   |                  0.0%   [8]        1.2%                      
 ------ --------------------------------------- ------------------------- ------------------------- -------- -------- ------------------ 
 macc=186,787 weights=44,364 act=5,888 ram_io=0
 
@@ -294,9 +294,9 @@ Evaluation report (summary)
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Output              acc       rmse          mae           l2r           mean        std        snr          nse        cos        tensor                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-HOST c-model #1     100.00%   0.000001819   0.000001268   0.000000170   -0.000000   0.000002   135.367374   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
-original model #1   100.00%   0.000001865   0.000001283   0.000000175   0.000000    0.000002   135.151539   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
-X-cross #1          100.00%   0.000001332   0.000000881   0.000000125   -0.000000   0.000001   138.075361   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+HOST c-model #1     100.00%   0.000001709   0.000001240   0.000000159   0.000000    0.000002   135.945892   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+original model #1   100.00%   0.000001562   0.000001134   0.000000146   -0.000000   0.000002   136.724634   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
+X-cross #1          100.00%   0.000001369   0.000000958   0.000000128   0.000000    0.000001   137.873144   1.000000   1.000000   'logits', 300 x f32(1x3), m_id=[9]   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
  acc  : Accuracy (class, axis=-1)

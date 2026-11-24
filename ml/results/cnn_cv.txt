@@ -1,20 +1,21 @@
 == CNN, leave-one-round-out, seed 0
-  held out 2026-11-22_eve   accuracy  97.2%   balanced  97.5%   (8 s)
-      2026-11-22_22_present-marked         8.4% wrong of 738
-      2026-11-22_23_present-marked        18.9% wrong of 739
-      2026-11-22_24_present-marked         5.5% wrong of 740
-  held out 2026-11-22_pm    accuracy  99.8%   balanced  99.8%   (7 s)
-  held out 2026-11-23_am    accuracy  99.4%   balanced  99.3%   (8 s)
-  held out 2026-11-23_eve   accuracy  99.3%   balanced  98.9%   (9 s)
-      2026-11-23_34_present-marked         8.8% wrong of 839
-  held out 2026-11-23_pm    accuracy  99.3%   balanced  99.3%   (7 s)
-      2026-11-23_22_present-marked         9.0% wrong of 835
-  held out 2026-11-24_am    accuracy  99.5%   balanced  99.3%   (7 s)
+  held out 2026-11-22_eve   accuracy  96.4%   balanced  96.6%   (9 s)
+      2026-11-22_22_present-marked         8.3% wrong of 738
+      2026-11-22_23_present-marked        29.2% wrong of 739
+      2026-11-22_24_present-marked         5.4% wrong of 740
+  held out 2026-11-22_pm    accuracy  99.9%   balanced  99.9%   (8 s)
+  held out 2026-11-23_am    accuracy  99.7%   balanced  99.8%   (8 s)
+  held out 2026-11-23_eve   accuracy  99.2%   balanced  98.9%   (8 s)
+      2026-11-23_34_present-marked         9.1% wrong of 839
+  held out 2026-11-23_pm    accuracy  99.1%   balanced  99.0%   (8 s)
+      2026-11-23_22_present-marked         7.9% wrong of 835
+  held out 2026-11-24_am    accuracy  91.0%   balanced  89.7%   (8 s)
+      2026-11-24_13_present-marked       100.0% wrong of 935
 
 pooled over the six held-out rounds (rows true, columns predicted):
               empty    seated   present    recall
-empty         27131         0       250     99.1%
-seated            1     16701        75     99.5%
-present         123        80     13155     98.5%
-precision     99.5%     99.5%     97.6%
-accuracy 99.1%   balanced accuracy 99.0%   frames 57516
+empty         27148         1       232     99.1%
+seated           22     16614       141     99.0%
+present         134       975     13184     92.2%
+precision     99.4%     94.5%     97.2%
+accuracy 97.4%   balanced accuracy 96.8%   frames 58451

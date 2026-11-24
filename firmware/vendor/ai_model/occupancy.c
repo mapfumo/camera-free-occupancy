@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    occupancy.c
   * @author  AST Embedded Analytics Research Platform
-  * @date    2026-11-24T08:43:25+1000
+  * @date    2026-11-24T16:22:46+1000
   * @brief   AI Tool Automatic Code Generator for Embedded NN computing
   ******************************************************************************
   * @attention
@@ -152,8 +152,8 @@
 
 
 /*****************************************************************************/
-#define _STAI_OCCUPANCY_MODEL_SIGNATURE     "0xccbb92aac5c1ff6b7b8100753cad82b3"
-#define _STAI_OCCUPANCY_DATETIME            "2026-11-24T08:43:25+1000"
+#define _STAI_OCCUPANCY_MODEL_SIGNATURE     "0x2813a33decfa1464d7d4ebbd6ff0b899"
+#define _STAI_OCCUPANCY_DATETIME            "2026-11-24T16:22:46+1000"
 #define _STAI_OCCUPANCY_COMPILE_DATETIME    __DATE__ " " __TIME__
 
 #define _STAI_CONTEXT_ALIGNMENT        STAI_OCCUPANCY_CONTEXT_ALIGNMENT

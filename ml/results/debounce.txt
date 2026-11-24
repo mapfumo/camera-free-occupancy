@@ -1,22 +1,22 @@
-steady: 63 sessions, 2.89 h   transitions: 6 chained rounds, 42 real changes   walking: 7 sessions
+steady: 64 sessions, 2.94 h   transitions: 6 chained rounds, 42 real changes   walking: 7 sessions
 
 rule                   false occ false class lag median  lag max   occ lag  occ max  extra walk agree walk->seated
-raw                            0          73       0.0s     1.2s      0.0s     0.0s      2      91.8%           26
-majority 1 s                   0           9       0.4s     1.6s      0.4s     0.4s      0      90.6%           23
-majority 2 s                   0           4       1.0s     1.8s      1.0s     1.0s      0      86.3%           23
-majority 3 s                   0           6       1.4s     2.2s      1.4s     1.4s      0      82.4%           25
-3 in a row (0.6 s)             0           9       0.4s     1.6s      0.4s     0.4s      0      90.1%           23
-5 in a row (1.0 s)             0           5       0.8s     2.0s      0.8s     0.8s      0      87.1%           23
-8 in a row (1.6 s)             0           2       1.4s     2.6s      1.4s     1.4s      0      81.0%           23
-10 in a row (2.0 s)            0           2       1.8s     3.0s      1.8s     1.8s      0      77.5%           15
-EMA a=0.3                      0          17       0.2s     1.2s      0.2s     0.2s      2      91.1%           22
-EMA a=0.2                      0           9       0.6s     1.4s      0.6s     0.6s      0      89.6%           21
-EMA a=0.2 +0.2                 0           3       0.8s     1.6s      0.8s     0.8s      0      88.0%           21
-EMA a=0.1                      0           2       1.2s     2.0s      1.2s     1.2s      0      84.6%           20
-two: occ 8, class 8            0           2       1.4s     2.6s      1.4s     1.4s      0      81.3%           25
-two: occ 5, class 8            0           2       0.8s     2.6s      0.8s     0.8s      0      86.6%           25
-two: occ 3, class 8            0           2       0.4s     2.6s      0.4s     0.4s      0      89.5%           25
-two: occ 5, class 10           0           2       0.8s     3.0s      0.8s     0.8s      0      86.4%           20
+raw                           44          91       0.0s     0.0s      0.0s     0.0s      3      90.7%           25
+majority 1 s                   0           1       0.4s     0.4s      0.4s     0.4s      0      89.2%           22
+majority 2 s                   0           0       1.0s     1.0s      1.0s     1.0s      0      85.3%           15
+majority 3 s                   0           0       1.4s     1.4s      1.4s     1.4s      0      82.0%           15
+3 in a row (0.6 s)             0           1       0.4s     0.4s      0.4s     0.4s      0      89.0%           20
+5 in a row (1.0 s)             0           1       0.8s     0.8s      0.8s     0.8s      0      85.5%           20
+8 in a row (1.6 s)             0           0       1.4s     1.4s      1.4s     1.4s      0      80.6%           15
+10 in a row (2.0 s)            0           0       1.8s     1.8s      1.8s     1.8s      0      76.7%           15
+EMA a=0.3                      0           1       0.2s     0.4s      0.2s     0.2s      0      89.6%           20
+EMA a=0.2                      0           1       0.6s     0.6s      0.6s     0.6s      0      88.2%           19
+EMA a=0.2 +0.2                 0           1       0.8s     0.8s      0.8s     0.8s      0      86.7%           19
+EMA a=0.1                      0           0       1.2s     1.4s      1.2s     1.2s      0      83.3%           16
+two: occ 8, class 8            0           0       1.4s     1.4s      1.4s     1.4s      0      80.9%           15
+two: occ 5, class 8            0           0       0.8s     1.4s      0.8s     0.8s      0      85.5%           15
+two: occ 3, class 8            0           0       0.4s     1.4s      0.4s     0.4s      0      88.8%           15
+two: occ 5, class 10           0           0       0.8s     1.8s      0.8s     0.8s      0      85.5%           15
 
 live test (2026-11-24_live, board probabilities, 10.8 min, 20 labelled changes)
 
