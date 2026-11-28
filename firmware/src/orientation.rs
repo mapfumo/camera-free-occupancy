@@ -159,8 +159,8 @@ mod tests {
 /// `fused_stream`'s `mount tilt` line; roll on 0–360°). `tilt_check` and
 /// `align` show green within ±1° of it.
 ///
-/// 44.5° / 167.1° from the 2026-11-28 evening: the pose of the re-recorded
+/// 44.5° / 167.3° from the 2026-11-28 evening: the pose of the re-recorded
 /// dataset (COLLECTION.md, "The redo"). Before that: 45.4° / 167.2° briefly,
 /// and 50.1° / 161.7° for the original 70 sessions.
 pub const MOUNT_TILT_DEG: f32 = 44.5;
-pub const MOUNT_ROLL_DEG: f32 = 167.1;
+pub const MOUNT_ROLL_DEG: f32 = 167.3;

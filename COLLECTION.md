@@ -180,7 +180,7 @@ later.
 line (or `tilt_check`): within ±1° of the reference. If not, stop and
 re-set; don't record into a moved pose.
 
-**Reference pose: 44.5° tilt / 167.1° roll** (set 2026-11-28 evening;
+**Reference pose: 44.5° tilt / 167.3° roll** (set 2026-11-28 evening;
 `orientation::MOUNT_*`). The yaw has no number: the new `empty-marked`
 sessions are its reference.
 
