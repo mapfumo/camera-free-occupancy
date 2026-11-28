@@ -157,6 +157,11 @@ draws in under 50 ms (draws over 50 ms are logged as `display frame N`).
 
 ## Troubleshooting (all seen on 2026-11-28)
 
+![The module's header on 2026-11-28: plug covering RESET to LED, one wire on GND, VCC and CS bare](../figures/gate4/display_header_vcc_open.jpg)
+
+*The grey-flicker fault as found: VCC and CS bare, the plug one position
+over. The labels are printed above every pin.*
+
 | Screen | Cause | Fix |
 |---|---|---|
 | Plain white, steady | Powered, never initialised: no data arriving, or the display was powered after the program started | Restart the program (it initialises once, at start). Then check SCK D13, SDI D11, CS D10, DC D8, RESET D9, label to label |

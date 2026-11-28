@@ -14,6 +14,11 @@ BACnet / InfluxDB / Grafana building-monitoring stack.
 > ToF heatmap now show on an ILI9341 display on the rig. Gateway
 > integration is next. See [Status](#status) for exactly what works.
 
+![The ILI9341 readout on the pole showing PRESENT, 100% confidence, OCCUPIED, with the live 8×8 ToF heatmap](figures/gate4/readout_present_on_pole.jpg)
+
+*The on-device readout, seen from the doorway: debounced state, model
+confidence, occupied/vacant and the live time-of-flight heatmap.*
+
 *CoworkOS* is the project's working name, and the docs still use it.
 
 ## Why no camera

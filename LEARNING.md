@@ -149,6 +149,13 @@ The board has **Arduino-compatible headers**: rows of sockets around the edge
 in the standard Arduino layout, so off-the-shelf add-on boards fit. We use them
 to connect the two sensors.
 
+![The sensor head from below: the B-U585I-IOT02A with a proto shield carrying the VL53L5CX-SATEL and the SparkFun AMG8833](figures/gate4/sensor_head_from_below.jpg)
+
+*The sensor head from below. The blue ST board is the B-U585I-IOT02A; the
+proto shield on it carries the time-of-flight sensor (VL53L5CX-SATEL, top)
+and the thermal camera (red SparkFun AMG8833, right). The bundle on the left
+goes to the display.*
+
 ### How things are wired
 
 Both sensors sit on the **same two wires**. That's I2C, explained next.
@@ -1111,6 +1118,11 @@ controller chip, the part that receives the data and draws the pixels. The
 plug sat one pin to the right, and VCC was left bare. With LED powered, the
 screen lit. With VCC open, the controller only got a trickle through its
 signal pins, which is why its shade followed those pins up and down.
+
+![The display module's header: the plug starts at RESET, a single wire on GND, VCC and CS left bare](figures/gate4/display_header_vcc_open.jpg)
+
+*The header as it was. The pin names are printed right above the pins:
+VCC (far left) and CS are bare. Label to label would have caught both.*
 
 **The lesson:** "the light is on" proves one supply, not all of them. A
 multimeter on the chip's own supply pin settles it in ten seconds.
