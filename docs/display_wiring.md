@@ -31,6 +31,13 @@ screen draws, every signal arrived.
 | SDO (MISO) | — | not connected | | Write-only driver |
 | T_CLK, T_CS, T_DIN, T_DO, T_IRQ | touch | not connected | | Touch unused (CLAUDE.md) |
 
+**VCC and LED are two separate supplies, and both must be connected.**
+VCC feeds the regulator that powers the ILI9341 controller; LED only
+switches the backlight. With LED powered and VCC open the backlight lights
+but nothing is ever drawn, and the screen flickers grey as the signal pins
+change (the controller half-powers through them). This cost a bench
+session on 2026-11-28.
+
 D12 (PE14, SPI1_MISO) stays free. The I2C sensors on D14/D15 and PWR_EN
 on A5 are untouched.
 
