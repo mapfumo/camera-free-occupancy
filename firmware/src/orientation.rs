@@ -159,8 +159,8 @@ mod tests {
 /// `fused_stream`'s `mount tilt` line; roll on 0–360°). `tilt_check` and
 /// `align` show green within ±1° of it.
 ///
-/// 45.4° / 167.2° since 2026-11-28 (NOTES, "Display on the panel…"): the
-/// head moved during the display work and was kept where the model was
-/// re-checked live. Every training session was recorded at 50.1° / 161.7°.
-pub const MOUNT_TILT_DEG: f32 = 45.4;
-pub const MOUNT_ROLL_DEG: f32 = 167.2;
+/// 44.5° / 167.1° from the 2026-11-28 evening: the pose of the re-recorded
+/// dataset (COLLECTION.md, "The redo"). Before that: 45.4° / 167.2° briefly,
+/// and 50.1° / 161.7° for the original 70 sessions.
+pub const MOUNT_TILT_DEG: f32 = 44.5;
+pub const MOUNT_ROLL_DEG: f32 = 167.1;

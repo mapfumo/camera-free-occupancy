@@ -180,7 +180,9 @@ later.
 line (or `tilt_check`): within ±1° of the reference. If not, stop and
 re-set; don't record into a moved pose.
 
-**Reference pose:** _to be filled in when set_.
+**Reference pose: 44.5° tilt / 167.1° roll** (set 2026-11-28 evening;
+`orientation::MOUNT_*`). The yaw has no number: the new `empty-marked`
+sessions are its reference.
 
 **One round = 12 sessions, ~3 min each** (empty 2.5 min, others 3 min),
 about 35 min of recording plus the 10-minute empty wait after any sitting.
