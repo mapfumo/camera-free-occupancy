@@ -1965,3 +1965,52 @@ measured on the board's SPI with no display attached: the timing is the
 bus, not the panel.
 
 **Not yet tested on a panel.** `display_test` is the weekend's first step.
+
+### Display on the panel, two power faults, and a realignment — 2026-11-28
+
+**The readout works on the real panel**, over 40 cm Dupont leads at 5 MHz,
+and is now part of `fused_stream`: debounced state band, occupied/vacant,
+confidence, live ToF heatmap. A state change costs one slow frame
+(212–220 ms against the 200 ms period); every other frame draws in under
+50 ms. The log format is unchanged.
+
+**Two power faults, both "looks connected, isn't":**
+
+- *Display VCC open.* The harness plug sat one pin to the right; VCC was
+  bare. LED alone lights the backlight, so the screen glowed and even
+  flickered in step with the signal pins (the controller half-powered
+  through them), but nothing was ever drawn. VCC and LED are separate
+  supplies; both are needed (`docs/display_wiring.md`).
+- *AMG8833 vanished from the bus* after the display work. Power LED on,
+  continuity good to the shield, but no ACK; wired straight to the board it
+  answered at 0x69. The culprit was the shield's 3V3 connection at a
+  standoff — now a soldered wire to the rail. Probably the cause of earlier
+  intermittent faults too. Later, twisted Dupont ends on the display
+  harness gave a white screen again: a twisted crimp stops gripping.
+
+**Taking the shield off moved the head.** Tilt/roll read 56.6° / 184°
+against the training pose's 50.1° / 161.7°. `tilt_check` now shows both
+angles on the LCD, green within ±1°, so the mount can be set at the pole.
+Back at 49.9° / 161.1°, an empty-room recording still differed in 36–49
+ToF zones from every reference (references differ among themselves by
+4–22, median 11): **the head had turned about the vertical axis**, which
+the accelerometer cannot see. New tools:
+
+- `tools/compare_empty.py` — an empty recording vs the empty-marked
+  sessions: zones changed (validity flip or > 100 mm), thermal hot spots,
+  with the references' own spread as the bar. (Earlier notes and the wiring
+  doc named a `check_session.py`; it never existed. This is it.)
+- `align` — the same comparison live on the LCD against the consensus of
+  the 10 empty-marked sessions, with an 8×8 match map and the best column
+  shift. Started at 37–42 zones off, shift +2 columns (~10° of yaw); turned
+  to 16, shift 0.
+
+The pose that came out is **45.4° / 167.2°**, not the training pose: the
+head moved again while being turned, and was kept because the model works
+in it. Live check in this pose, scripted walk-in / sit / stand / bend over /
+sit: empty 16 s at p 0.98, seated 17 s at 0.96, **stand + bend-over 17.6 s
+present without a break at 0.99**, seated again at 0.98; the display
+followed each change within 1.6–2.0 s. That is the reference pose from here.
+
+No thermal hot spot from the display in any comparison: the backlight is
+not in the AMG8833's view.

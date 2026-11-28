@@ -86,7 +86,7 @@ Out of both sensors' field of view, and **at least 20–30 cm from the
 AMG8833**. The backlight is a heat source, and the thermal array would see
 it as a warm spot. After mounting, check that the tilt still reads ~50°
 and that an empty-room recording matches the reference
-(`check_session.py`). That shows the sensor head was not knocked.
+(`tools/compare_empty.py`). That shows the sensor head was not knocked.
 
 ## Power
 

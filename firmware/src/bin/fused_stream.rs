@@ -60,6 +60,16 @@
 //! If the IMU fails, the stream carries on and says `tilt n/a`: losing the
 //! angle is worth a warning, not a lost session.
 //!
+//! # The readout
+//!
+//! The ILI9341 on SPI1 (`docs/display_wiring.md`) shows the debounced state,
+//! occupied/vacant, the model's confidence in the shown state, and the live
+//! ToF heatmap. It is write-only and draws after the frame is logged, so the
+//! log and the dataset format are unchanged, and the stream runs the same
+//! with no display attached. Per frame the heatmap costs 0.3–11 ms; a state
+//! change repaints the band (~180 ms at 5 MHz), which can delay the next
+//! frame once per change. Slow draws are logged as `display … ms`.
+//!
 //! Run with:
 //! `cargo run --release --bin fused_stream | python3 ../tools/heatmap_viewer.py`
 
@@ -71,6 +81,7 @@ use embassy_executor::Spawner;
 use embassy_stm32::gpio::{Level, Output, Speed};
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Blocking;
+use embassy_stm32::spi::{self, Spi};
 use embassy_stm32::time::Hertz;
 use embassy_time::{Duration, Instant, Timer};
 
@@ -81,6 +92,8 @@ use coworkos_firmware::amg8833::{ALT_ADDRESS, Amg8833, DEFAULT_ADDRESS, FrameRat
 use coworkos_firmware::clock;
 use coworkos_firmware::debounce::Debouncer;
 use coworkos_firmware::encode::{self, INPUTS};
+use coworkos_firmware::ili9341::Ili9341;
+use coworkos_firmware::readout::Readout;
 use coworkos_firmware::inference::{self, Model};
 use coworkos_firmware::i2c_recovery;
 use coworkos_firmware::ism330dhcx::{self, Ism330dhcx, MICRO_G_PER_LSB, Tilt};
@@ -97,6 +110,11 @@ type Bus = I2c<'static, Blocking, Master>;
 const TOF_ADDRESS_8BIT: u16 = 0x52;
 const RESOLUTION_8X8: u8 = 64;
 const RANGING_HZ: u8 = 5;
+/// Display SPI clock: 160 MHz / 32. Proven over the 40 cm harness.
+const DISPLAY_SPI_MHZ: u32 = 5;
+/// A display draw longer than this is logged.
+const DISPLAY_SLOW_MS: u64 = 50;
+
 /// AMG8833 probe attempts, each after a bus recovery, before giving up.
 const AMG_ATTEMPTS: u8 = 3;
 
@@ -120,6 +138,22 @@ async fn main(_spawner: Spawner) {
     cfg.frequency = Hertz::khz(100);
     // Long enough for the ULD's firmware download, which is one big write.
     cfg.timeout = Duration::from_millis(1000);
+
+    // ---- Display first, so it shows WAIT through the sensor start-up ----
+    let mut spi_cfg = spi::Config::default();
+    spi_cfg.frequency = Hertz::mhz(DISPLAY_SPI_MHZ);
+    spi_cfg.gpio_speed = Speed::Low;
+    let mut display = Ili9341::new(
+        Spi::new_blocking_txonly(p.SPI1, p.PE13, p.PE15, spi_cfg),
+        Output::new(p.PE12, Level::High, Speed::Low), // CS, D10
+        Output::new(p.PC1, Level::High, Speed::Low),  // DC, D8
+        Some(Output::new(p.PA8, Level::High, Speed::Low)), // RESET, D9
+    );
+    display.init();
+    let mut readout = Readout::new();
+    readout.clear(&mut display);
+    readout.show_state(&mut display, None, None);
+    readout.show_confidence(&mut display, None);
 
     // ---- Free the bus, then find the AMG8833 ----
     // A run killed mid-transfer can leave a target holding SDA low, and the
@@ -292,6 +326,9 @@ async fn main(_spawner: Spawner) {
         print_status(frame, &status);
         print_thermal(frame, &thermal, die);
 
+        let t_draw = Instant::now();
+        readout.show_heatmap(&mut display, &distance, &status);
+
         // Classify the pair. Its own line, not a `--- frame` block, so the
         // viewer and the dataset format are untouched; tools/parity_check.py
         // re-encodes the raw grids above and compares against these logits.
@@ -325,9 +362,17 @@ async fn main(_spawner: Spawner) {
                         }
                         since_report = 0;
                     }
+                    let st = debounce.state();
+                    readout.show_state(&mut display, st, debounce.occupied());
+                    readout.show_confidence(&mut display, st.map(|k| pr[k]));
                 }
                 Err(e) => warn!("inference failed: {}", e),
             }
+        }
+
+        let draw_ms = t_draw.elapsed().as_millis();
+        if draw_ms > DISPLAY_SLOW_MS {
+            info!("display frame {=u32}: {=u64} ms", frame, draw_ms);
         }
     }
 }
