@@ -2050,3 +2050,27 @@ a round drops to 12 sessions and adds a transitions session with video —
 sitting down and standing up, the moments the live tests failed on. Six
 rounds, starting 2026-11-28 eve. The original 70 sessions stay; training
 on new and new + old is compared. Plan: `COLLECTION.md`, "The redo".
+
+### Redo round 1 (evening) — 2026-11-28
+
+Pose set and locked at **44.5° / 167.3°** after moving the stand and
+securing the harness (securing it moved roll 0.2°: re-locked, not chased).
+All 12 sessions held within 0.1° of it, except hunched over the desk
+(session 6): **44.82°** — leaning on the desk tilts the sensor ~0.3°, and it
+came back when sitting back. Within tolerance; worth knowing.
+
+- Empties (1–4): no warm pixels; the chair is the near object at the left
+  edge (680–830 mm marked, ~1,100 mm pulled out, mid-columns turned).
+- Seated (5–7): normal 390–730 mm bottom rows; hunched lower-right 600–676;
+  leaning back up-left 587–880. Three distinct shapes, as intended.
+- Present: standing reaches 250–530 mm (head and shoulders close). **Bent
+  over the keyboard sits at 390–670 mm — the same range as seated**: the
+  difference is the shape across the bottom rows, not the distance. That
+  is the old model's error in one line.
+- Walk-pasts (10–11): 8 and 7 passes; sensor pre-fill, edges checked
+  against video, gaps ≤ 5 frames inside a pass filled.
+- Transitions (12): 3 cycles, 1,591 frames, 655 present / 647 seated / 289
+  empty after review (21 frames corrected, all sub-second edges).
+
+New tool: `tools/trim_session.py` (fixed-length trim, clock re-zeroed,
+video sync updated). 10,908 frames in the round.
