@@ -7,8 +7,8 @@
 //!
 //! The same reading is drawn on the ILI9341 in large digits, so the mount
 //! can be adjusted at the pole without watching a terminal: tilt and roll
-//! (roll shown 0–360°, so the training pose reads 161.7, not a sign flip),
-//! each green within ±1° of the training sessions' pose, orange otherwise.
+//! (roll shown 0–360°, so it never flips sign near 180°), each green within
+//! ±1° of the reference pose (`orientation::MOUNT_*`), orange otherwise.
 //! No display attached: the log is unchanged.
 //!
 //! Run with: `cargo run --release --bin tilt_check`
@@ -42,10 +42,7 @@ use coworkos_firmware::ism330dhcx::{self, Ism330dhcx, MICRO_G_PER_LSB};
 
 const SAMPLES: usize = 104;
 
-/// The pose every training session was recorded in (NOTES.md; the live
-/// trial's `mount tilt` line: 50.07° / 161.70°).
-const TARGET_TILT: f32 = 50.1;
-const TARGET_ROLL: f32 = 161.7;
+use coworkos_firmware::orientation::{MOUNT_ROLL_DEG as TARGET_ROLL, MOUNT_TILT_DEG as TARGET_TILT};
 const TOLERANCE_DEG: f32 = 1.0;
 
 #[embassy_executor::main]

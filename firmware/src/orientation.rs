@@ -154,3 +154,13 @@ mod tests {
         }
     }
 }
+
+/// The mount's reference pose, as the on-board IMU reads it (`tilt_check`,
+/// `fused_stream`'s `mount tilt` line; roll on 0–360°). `tilt_check` and
+/// `align` show green within ±1° of it.
+///
+/// 45.4° / 167.2° since 2026-11-28 (NOTES, "Display on the panel…"): the
+/// head moved during the display work and was kept where the model was
+/// re-checked live. Every training session was recorded at 50.1° / 161.7°.
+pub const MOUNT_TILT_DEG: f32 = 45.4;
+pub const MOUNT_ROLL_DEG: f32 = 167.2;

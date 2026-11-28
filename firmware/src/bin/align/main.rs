@@ -46,6 +46,7 @@ use coworkos_firmware::clock;
 use coworkos_firmware::i2c_recovery;
 use coworkos_firmware::ili9341::{Ili9341, Scaled, HEIGHT, WIDTH};
 use coworkos_firmware::ism330dhcx::{self, Ism330dhcx};
+use coworkos_firmware::orientation::{MOUNT_ROLL_DEG, MOUNT_TILT_DEG};
 use coworkos_firmware::vl53l5cx::bindings::{
     VL53L5CX_Configuration, VL53L5CX_ResultsData, vl53l5cx_check_data_ready, vl53l5cx_get_ranging_data,
     vl53l5cx_init, vl53l5cx_is_alive, vl53l5cx_set_ranging_frequency_hz, vl53l5cx_set_resolution,
@@ -205,11 +206,13 @@ async fn main(_spawner: Spawner) {
         let near = |v: f32, w: f32| if (v - w).abs() <= 1.0 { GREEN } else { ORANGE };
         let mut s = Line::new();
         let _ = write!(s, "T {:5.1}", t);
-        text(&mut d, 1, Point::new(8, 172), s.as_str(), near(t, 50.1));
+        text(&mut d, 1, Point::new(8, 172), s.as_str(), near(t, MOUNT_TILT_DEG));
         let mut s = Line::new();
         let _ = write!(s, "R {:5.1}", r);
-        text(&mut d, 1, Point::new(8, 196), s.as_str(), near(r, 161.7));
-        text(&mut d, 1, Point::new(8, 220), "50.1/161.7", DIM);
+        text(&mut d, 1, Point::new(8, 196), s.as_str(), near(r, MOUNT_ROLL_DEG));
+        let mut s = Line::new();
+        let _ = write!(s, "{:.1}/{:.1}", MOUNT_TILT_DEG, MOUNT_ROLL_DEG);
+        text(&mut d, 1, Point::new(8, 220), s.as_str(), DIM);
         for z in 0..64 {
             if shown.map_or(true, |p| p[z] != cell[z]) {
                 let c = match cell[z] {
