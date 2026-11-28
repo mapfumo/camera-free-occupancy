@@ -1,5 +1,9 @@
 # Collection procedure — Gate 2
 
+> **2026-11-28: the dataset is being re-recorded in a new pose.** See
+> [The redo](#the-redo-in-the-current-pose--from-2026-11-28) at the end for
+> the round list. Everything else below still applies.
+
 How to record a labelled session. Every rule here came out of a measurement;
 the reasons are in [`NOTES.md`](NOTES.md) under the date given.
 
@@ -46,8 +50,10 @@ Examples: `empty/marked/am`, `empty/out/pm`, `seated/marked/pm`,
    10-minute sit; a model will learn it as "someone just left".
    (2026-11-22, "Settling time")
 4. **Don't touch the rig.** The session prints its mount angle at start —
-   it should read **49.9–50.2°** down, roll ~162°. Anything else: the rig
-   has moved; stop and re-check aim before recording.
+   it should be within ±1° of the reference pose (`orientation::MOUNT_*`;
+   see "The redo" below for the current values; the original dataset was
+   49.9–50.2° down, roll ~162°). Anything else: the rig has moved; stop,
+   run `tilt_check` and `align`, and re-set it before recording.
 
 ## Recording
 
@@ -151,3 +157,59 @@ sees the whole room, the sensor only the desk and chair from above, so a
 person the camera sees clearly can still be an `empty` frame. Judge by the
 heatmaps; use the video to settle doubt (2026-11-22, "Evening round; video
 sync confirmed"). Commit the `.labels.csv.gz`; never the video.
+
+## The redo in the current pose — from 2026-11-28
+
+**Why.** The head moved (shield work, then a bump) and the deployed model
+misread a sit as `present` for 30 s at the new pose (NOTES, 2026-11-28).
+Rather than buy a precision mount, the whole dataset is recorded again in
+the current setup, and the limitation (a non-rigid mount, a model
+measurably sensitive to a few degrees of pose) is documented. The original
+70 sessions stay in `sessions/`; whether adding them to training helps is
+tested, not assumed. New-pose sessions are the ones dated 2026-11-28 and
+later.
+
+**Before the first session (once):**
+
+1. Move the stand so nobody can walk into the board.
+2. Set the pose with `tilt_check` (angles on the LCD), lock it, then
+   `align` for yaw. Record the values in `orientation::MOUNT_*` and here.
+3. One `empty-marked` session first: the new pose's empty reference.
+
+**Before every session:** a glance at the start-of-session `mount tilt`
+line (or `tilt_check`): within ±1° of the reference. If not, stop and
+re-set; don't record into a moved pose.
+
+**Reference pose:** _to be filled in when set_.
+
+**One round = 12 sessions, ~3 min each** (empty 2.5 min, others 3 min),
+about 35 min of recording plus the 10-minute empty wait after any sitting.
+Sessions stay short on purpose: frames within one are near-copies, so
+variety comes from more sessions, not longer ones.
+
+| # | Session | Label | Video |
+|---|---|---|---|
+| 1 | Empty, chair on its marks | `empty/marked/<dp>` | |
+| 2 | Empty, chair pulled out | `empty/out/<dp>` | |
+| 3 | Empty, chair turned | `empty/turned/<dp>` | |
+| 4 | Empty, chair away | `empty/away/<dp>` | |
+| 5 | Seated, normal | `seated/marked/<dp>` | |
+| 6 | Seated, hunched over the desk | `seated/marked/<dp>` | |
+| 7 | Seated, leaning back | `seated/marked/<dp>` | |
+| 8 | Standing at the desk, reaching across | `present/out/<dp>` | |
+| 9 | Standing bent over the keyboard | `present/marked/<dp>` | |
+| 10 | Walking past, both sides | `present/marked/<dp>` | **yes**, per-frame labels |
+| 11 | Walking past, again | `present/away/<dp>` | **yes**, per-frame labels |
+| 12 | Transitions: walk in → sit → stand → bent over → sit → leave, repeated | `present/marked/<dp>` | **yes**, per-frame labels incl. `seated` |
+
+Do the empty sessions (1–4) first, before anyone has sat, so the 10-minute
+wait is only needed if the order changes. Sessions 10–12 need the labeller
+afterwards (`tools/label_frames.py`); session 12 is the one the old dataset
+lacked — sitting down and standing up, where the live tests failed.
+
+**Six rounds:** `eve`, `am`, `pm` on two different days, as before. Start:
+2026-11-28 `eve`.
+
+**Then:** retrain on the new rounds (leave-one-round-out), and on new + old
+together; score both on held-out new rounds and the live test in `trials/`;
+deploy the better one; rerun the Gate 4 exit test.

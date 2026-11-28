@@ -2014,3 +2014,39 @@ followed each change within 1.6–2.0 s. That is the reference pose from here.
 
 No thermal hot spot from the display in any comparison: the backlight is
 not in the AMG8833's view.
+
+### Exit test fails after a bump; the dataset is re-recorded — 2026-11-28
+
+**First exit-test attempt — void.** I walked into the board (it hangs
+almost directly above head height). Start-of-run roll 172.1° against the
+167.2° reference, tilt unchanged. The run showed a 23 s `present` and
+low-confidence `empty` (p 0.81–0.89) stretches where `seated` was expected.
+Not scored.
+
+**Re-set and retried.** `tilt_check` brought tilt/roll back (44.9° /
+167.1°), but `align` would not come below the low 30s of zones off with
+shift 0, and the ball head couples its axes: turning for yaw moves roll.
+It was bought for video, not precision positioning. Second attempt:
+
+- empty: solid every time (p 1.00); walk-past `present` 4.6 s, never
+  `seated`; the final sit `seated` for 50+ s at p 0.97–0.98.
+- **a sit read `present` for ~30 s** (69–103 s), at p 1.00.
+
+Not a pass. The firmware, display and debouncers did their job; the model
+no longer recognises some sitting postures from this viewpoint.
+
+**What this measures.** A few degrees of roll and yaw — one bump — was
+enough to turn a reliable `seated` into a confident `present`. The model
+learned one viewpoint. A real installation needs a mount that cannot move
+(fixed bracket, out of reach), or training data that spans the poses it
+will meet.
+
+**Decision.** Not a precision mount (this project is about understanding
+the essentials, not a product): **re-record the whole dataset in the
+current setup**, with the stand moved out of the walking path and a pose
+check before every session, and document the limitation. Sessions stay
+~3 min (they always were 2.5–3.1 min; frames within one are near-copies);
+a round drops to 12 sessions and adds a transitions session with video —
+sitting down and standing up, the moments the live tests failed on. Six
+rounds, starting 2026-11-28 eve. The original 70 sessions stay; training
+on new and new + old is compared. Plan: `COLLECTION.md`, "The redo".

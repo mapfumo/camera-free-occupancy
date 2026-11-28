@@ -215,13 +215,17 @@ Ordered by when it matters, not by size.
       model was re-checked live in it: stand + bend-over 17.6 s `present`
       without a break, seated / empty steady at p 0.96–0.99.
 - [ ] **Gate 4 exit test**: walk in, out, back, reading the display from the
-      door; then tag `phase4-live`.
-- [ ] Record one `empty-marked` session in the new pose as its reference
-      (the current references are all at 50.1° / 161.7°, so `align` reads
-      ~16 zones off here, not ~0).
-- [ ] Watch for a drop in accuracy from the pose change (training data is
-      all at 50.1° / 161.7°). If it shows, record a round in the new pose
-      and retrain, rather than chasing the old pose.
+      door; then tag `phase4-live`. 2026-11-28: failed after a bump moved
+      the head (a sit read `present` for ~30 s). NOTES, "Exit test fails…".
+- [ ] **Re-record the dataset in the current pose** (`COLLECTION.md`,
+      "The redo"): move the stand out of the walking path, set and record
+      the pose, one empty reference, then six rounds of 12 × ~3 min
+      (eve / am / pm × 2 days), starting 2026-11-28 eve. Label sessions
+      10–12 per frame from video.
+- [ ] Retrain on new rounds, and on new + old; score on held-out new rounds
+      and `trials/`; deploy the better; rerun the exit test.
+- [ ] Document the limitation in README: non-rigid mount; model sensitive
+      to a few degrees of pose; a real deployment needs a fixed mount.
 - [ ] Lock the harness plug: hot glue across the shield-end Dupont housings,
       or one 1×8 housing, labelled. Twisted/loose Dupont ends cost two
       bench rounds on 2026-11-28.
