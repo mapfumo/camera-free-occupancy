@@ -53,7 +53,7 @@ def main():
         w.writeheader()
         w.writerows(kept)
     if a.video:
-        sync = os.path.splitext(a.video)[0] + ".sync.json"
+        sync = a.video + ".sync.json"
         with open(sync) as f:
             s = json.load(f)
         s["trim_host_s"] = s.get("trim_host_s", 0.0) + t0
