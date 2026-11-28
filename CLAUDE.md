@@ -10,7 +10,7 @@ CoworkOS is a privacy-preserving room occupancy detection system. It uses a VL53
 - B-U585I-IOT02A Discovery Kit (STM32U585, Cortex-M33)
 - VL53L5CX-SATEL (8×8 zone Time-of-Flight sensor, I2C) — distance + reflectance per zone
 - SparkFun Grid-EYE AMG8833 (8×8 thermopile IR array, I2C) — radiated heat per pixel
-- HiLetgo ILI9341 TFT (240×320, SPI) — on-device readout added in Phase 4: class, confidence, small live heatmap. **Display only — do not wire up the touch panel.**
+- HiLetgo ILI9341 TFT (240×320, SPI) — on-device readout added in Phase 4: class, confidence, small live heatmap. **Display only — do not wire up the touch panel.** SPI1 at 5 MHz, write-only: SCK D13 (PE13), SDI D11 (PE15), CS D10 (PE12), DC D8 (PC1), RESET D9 (PA8), **VCC and LED both to 5V** (LED alone lights the backlight but nothing draws). Drawn by `fused_stream`. Pin map, troubleshooting: `docs/display_wiring.md`.
 
 **Software stack:**
 - Rust firmware using Embassy async framework
@@ -142,7 +142,10 @@ Do not add BACnet/gateway integration (Phase 5) before Phase 4 live inference is
 - Output: 64 temperature readings (°C) per frame, 8×8 grid, ~10 Hz max
 - I2C address: 0x68 (part default) or 0x69 (AD0 high). **The SparkFun breakout in this build answers at 0x69** — the drivers probe both rather than hard-coding one. Both sensors share one I2C bus.
 - Detects radiated heat regardless of motion — complements ToF for detecting still occupants
+- **Its 3.3 V comes by a wire soldered to the shield's 3V3 rail** (2026-11-28). The old route through a standoff connection was intermittent: power LED on, no I2C ACK. If it vanishes from the bus again, wire it directly to the board first — that separates a dead sensor from a bad connection in one step.
 - A pure Rust I2C driver is straightforward; no vendor C library needed
+
+**Mount pose:** reference **45.4° tilt / 167.2° roll** (`orientation::MOUNT_*`, since 2026-11-28; all training data was recorded at 50.1° / 161.7°). After anything that could move the head: `tilt_check` (angles on the LCD), then `align` (yaw — the accelerometer cannot see it; the empty room can), then `tools/compare_empty.py` on ~60 s of empty room.
 
 **Multi-modal fusion:**
 - Both sensors produce 8×8 grids — natural to concatenate into a 128-value input vector (or two-channel 8×8 "image") for a single model

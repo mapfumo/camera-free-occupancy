@@ -1096,6 +1096,77 @@ read high. But a sensor mid-byte can put a 1 bit on the line and then pull it
 low again for the next bit. "The line went high" is not the same as "the
 sensor let go" — always send all nine pulses.
 
+### 10. A screen that glowed but never drew
+
+**Cost: most of a bench session.**
+
+The display's backlight came on, so it looked powered. Then nothing ever
+appeared, and the screen flickered between dark, grey and bright in a slow
+rhythm. The board kept reporting "drawn", because it can't know otherwise:
+the display is write-only, so nothing ever comes back.
+
+**The cause:** the module has two power pins that do different jobs. **LED**
+only switches the backlight. **VCC** feeds a small regulator that powers the
+controller chip, the part that receives the data and draws the pixels. The
+plug sat one pin to the right, and VCC was left bare. With LED powered, the
+screen lit. With VCC open, the controller only got a trickle through its
+signal pins, which is why its shade followed those pins up and down.
+
+**The lesson:** "the light is on" proves one supply, not all of them. A
+multimeter on the chip's own supply pin settles it in ten seconds.
+
+### 11. The sensor that vanished, and the joint that hid it
+
+**Cost: an evening of eliminating things.**
+
+After the display was wired, the thermal sensor stopped answering on I2C.
+Its power LED was on; continuity from its pins to the shield beeped; the ToF
+on the very same two wires worked. Wired straight to the board with
+jumpers, it answered at once.
+
+**The cause:** the shield's 3.3 V reached the sensor through a connection
+at a standoff that only made contact some of the time. Enough to light an
+LED, not enough for a chip to answer reliably. A wire soldered straight to
+the 3.3 V rail fixed it, and probably explains earlier intermittent faults
+too.
+
+**The lesson:** split the path. "Does it work on its own, wired directly?"
+separates a dead part from a bad connection in one step. Continuity tests
+only prove the stretch you put the probes on.
+
+### 12. Dupont leads don't like being twisted
+
+Later the display went white again. The wiring was right, label for label.
+The leads had been turned 90° on their pins. A Dupont crimp is a little
+spring: twisted, it stops gripping and can look perfectly seated. New leads
+fixed it. Lock plugs in place (a dab of hot glue across the housings, or one
+multi-way housing) so they can't be turned or nudged.
+
+### 13. The turn an accelerometer cannot see
+
+Taking the shield off and back moved the sensor head. The on-board
+accelerometer reported it (tilt 56.6° instead of 50.1°), and with the
+angles shown live on the display the head was set back to within a
+degree. But an empty-room recording still didn't match: 36–49 of the 64
+distance zones had changed, against 4–22 between any two earlier
+recordings.
+
+**Why:** an accelerometer measures gravity. Tilting forward or rolling
+sideways changes how gravity falls across its axes. Turning left or right
+about the vertical (yaw) doesn't change gravity's direction at all, so the
+sensor can't see it. The head was pointing about 10° to one side.
+
+**The fix:** use the scene itself as the reference. The empty room, chair on
+its marks, looks the same every time. The `align` tool compares the live
+distance grid with that reference and shows on the display how many zones
+differ and how many columns the view is shifted. Turn the head until the
+shift reaches zero. It came out at 45.4° / 167.2°, a few degrees from the
+training pose, and the model was re-checked live in that pose before it was
+kept.
+
+**The lesson:** a measurement only covers the directions it can sense. When
+one sensor can't see an axis, find something that can, here the room.
+
 ---
 
 ## 13. Glossary

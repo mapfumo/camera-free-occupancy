@@ -10,8 +10,9 @@ BACnet / InfluxDB / Grafana building-monitoring stack.
 > 5.75 KiB RAM) and matches the PC bit-for-bit in class. In a 10.8-minute
 > live scripted test it made no false empty↔occupied change and caught 12 of
 > 12 real ones. On recording rounds it never trained on it scores ~99%
-> (71 labelled sessions, 58,451 frames). Display and gateway integration
-> are next. See [Status](#status) for exactly what works.
+> (71 labelled sessions, 58,451 frames). The state, confidence and a live
+> ToF heatmap now show on an ILI9341 display on the rig. Gateway
+> integration is next. See [Status](#status) for exactly what works.
 
 *CoworkOS* is the project's working name, and the docs still use it.
 
@@ -224,7 +225,7 @@ details the phases).
 | 1 | Bring-up — both sensors on one bus, fixed rig | done — `phase1-bringup` |
 | 2 | Dataset — labelled classes, separable by eye as heatmaps | done — `phase2-data` |
 | 3 | Model — confusion matrix on held-out data | done — `phase3-model` |
-| 4 | Live inference + on-device readout | **in progress** — inference and debounce done; display next |
+| 4 | Live inference + on-device readout | **in progress** — inference, debounce and display working; exit test next |
 | 5 | Integrated into BACnet / Grafana | |
 | 6 | Same firmware in C/FreeRTOS, measured against this one | |
 | 7 | Validated over a multi-day real-room run | |
@@ -240,13 +241,20 @@ every daypart; the model input encoding; the CNN running on the board every
 frame (ST Edge AI C over FFI, 8.2 ms), with two debouncers (occupancy and
 class, 8 frames in a row each) turning frames into a reported state; a
 stuck-bus recovery on the I2C line. A 10.8-minute live scripted test scored
-against webcam labels: 0 false empty↔occupied changes, 12/12 caught.
+against webcam labels: 0 false empty↔occupied changes, 12/12 caught. The
+ILI9341 on the pole, facing the door, shows the debounced state,
+occupied/vacant, confidence and the live ToF heatmap, drawn from the same
+loop without changing the log. Alignment tools put the sensor head back
+after it is moved: tilt and roll on the display (`tilt_check`), and a live
+comparison with the empty-room reference for the turn an accelerometer
+cannot see (`align`, `tools/compare_empty.py`).
 
 A ten-minute soak confirmed the ToF's self-heating does not reach the
 thermal image.
 
-**Next:** Gate 4 — show the state on the ILI9341 (class, confidence, small
-live heatmap), mounted on the pole. The working list is [`TODO.md`](TODO.md).
+**Next:** the Gate 4 exit test — walk in, out and back, reading the result
+off the display — then tag `phase4-live`. The working list is
+[`TODO.md`](TODO.md).
 
 ## Documentation
 
@@ -255,6 +263,7 @@ live heatmap), mounted on the pole. The working list is [`TODO.md`](TODO.md).
 | [`LEARNING.md`](LEARNING.md) | Plain-language explanation of the whole project, for someone new to embedded |
 | [`NOTES.md`](NOTES.md) | Engineering log: measurements, findings, and the theories that failed |
 | [`COLLECTION.md`](COLLECTION.md) | Gate 2 recording procedure: classes, labels, and the rules each session follows |
+| [`docs/display_wiring.md`](docs/display_wiring.md) | ILI9341 pin map, harness, power, placement and troubleshooting |
 | [`sessions/README.md`](sessions/README.md) | Dataset file format, columns and per-frame labels |
 | [`TODO.md`](TODO.md) | Working list, ordered by when it matters |
 | [`occupancy-sensor-project-plan.md`](occupancy-sensor-project-plan.md) | The seven-phase plan |

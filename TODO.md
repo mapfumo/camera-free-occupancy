@@ -202,13 +202,35 @@ Ordered by when it matters, not by size.
       on the board. NOTES, "Retraining for the bent-over posture".
 - [ ] Second bent-over session in a pm/eve round (CV can then test the
       fix on an unseen round), plus hunched sitting to recover seated recall.
-- [ ] **ILI9341 readout** — class, confidence, small live heatmap; display
-      only, no touch. Driver + layout + `display_test` written and timed
-      (2026-11-24); wiring in `docs/display_wiring.md`. Weekend: carrier
-      (standoffs), 8-way harness, bench test, mount, re-check tilt and
-      empty-scene. Then wire the readout into the application loop.
-- [ ] Port bus recovery + ICACHE into `main.rs` when the application binary
-      takes over from `fused_stream`.
+- [x] ~~**ILI9341 readout**~~ — 2026-11-28: on the panel over 40 cm Dupont
+      leads at 5 MHz, mounted top corner of the pole facing the door, and
+      drawn by `fused_stream` (state, occupied/vacant, confidence, heatmap).
+      One slow frame per state change (212–220 ms), the rest < 50 ms. Two
+      power faults on the way (display VCC open; AMG8833 3V3 at a standoff,
+      now a soldered wire). NOTES, "Display on the panel…".
+- [x] ~~Re-check tilt and empty scene after mounting.~~ 2026-11-28: the
+      shield coming off had moved the head (56.6° / 184°, then ~10° of yaw).
+      Realigned with `tilt_check` on the LCD and the new `align` mode; the
+      pose kept is **45.4° / 167.2°** (`orientation::MOUNT_*`), and the
+      model was re-checked live in it: stand + bend-over 17.6 s `present`
+      without a break, seated / empty steady at p 0.96–0.99.
+- [ ] **Gate 4 exit test**: walk in, out, back, reading the display from the
+      door; then tag `phase4-live`.
+- [ ] Record one `empty-marked` session in the new pose as its reference
+      (the current references are all at 50.1° / 161.7°, so `align` reads
+      ~16 zones off here, not ~0).
+- [ ] Watch for a drop in accuracy from the pose change (training data is
+      all at 50.1° / 161.7°). If it shows, record a round in the new pose
+      and retrain, rather than chasing the old pose.
+- [ ] Lock the harness plug: hot glue across the shield-end Dupont housings,
+      or one 1×8 housing, labelled. Twisted/loose Dupont ends cost two
+      bench rounds on 2026-11-28.
+- [ ] Port bus recovery + ICACHE + the readout into `main.rs` when the
+      application binary takes over from `fused_stream`.
+- [ ] Optional: display SPI 5 → 10 MHz to make the state-change frame fit
+      the 200 ms period, now the harness is proven.
+- [ ] Note: the on-board LPS22HH barometer (I2C2, 0x5d) missed one scan on
+      2026-11-28. Unused by this project; check again if it recurs.
 
 ## Before Gate 2 data collection
 

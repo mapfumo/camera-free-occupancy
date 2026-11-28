@@ -1,9 +1,14 @@
 # ILI9341 display wiring
 
 The 2.8" ILI9341 TFT module (red board, "2.8 TFT SPI 240X320 V1.2", 14-pin
-header) on a perfboard carrier on the pole, about 28 cm from the
-B-U585I-IOT02A. It connects to the proto shield through one removable
-harness. **No loose jumpers.**
+header), mounted at the top corner of the pole, facing the door. It
+connects to the proto shield through 40 cm Dupont leads.
+
+**As built, 2026-11-28:** 40 cm female–female Dupont leads from the shield
+to the module's header, not yet the planned ribbon and perfboard carrier
+(below). Proven at 5 MHz by `display_hello`, `display_test` and the live
+`fused_stream`. LED is fed from 5V alongside VCC. The plan below is still
+the tidy version to build.
 
 **Wire label to label, never by counted position.** This board's ARDUINO
 header is not ordered like a NUCLEO-64's (CLAUDE.md, the CN13 story).
@@ -84,9 +89,25 @@ VCC on the carrier.
 
 Out of both sensors' field of view, and **at least 20–30 cm from the
 AMG8833**. The backlight is a heat source, and the thermal array would see
-it as a warm spot. After mounting, check that the tilt still reads ~50°
-and that an empty-room recording matches the reference
-(`tools/compare_empty.py`). That shows the sensor head was not knocked.
+it as a warm spot. **Facing the door**, not the chair: the reader is the
+person arriving (and the Gate 4 exit test is read while walking in); the
+person seated already knows, and a bright screen in their eyeline could
+change how they sit.
+
+After mounting, check the head was not moved:
+
+1. `cargo run --release --bin tilt_check` — tilt and roll on the LCD, green
+   within ±1° of the reference pose (`orientation::MOUNT_*`, 45.4° / 167.2°
+   since 2026-11-28).
+2. `cargo run --release --bin align` — chair on its marks, nobody in view.
+   The accelerometer cannot see a turn about the vertical axis; the scene
+   can. The big number is how many ToF zones differ from the empty-room
+   reference; "shift" is how many zone columns the view is turned. Pan the
+   head until shift is 0 and the number is at its lowest (~16 in the
+   current pose, whose references are at the old one).
+3. Record ~60 s empty and run `tools/compare_empty.py` on it: zones changed
+   against the references' own spread, and any thermal hot spot (the
+   backlight, if it is in view). On 2026-11-28: no hot spot.
 
 ## Power
 
@@ -110,9 +131,15 @@ then off.
 
 ## Bench test first
 
-`cargo run --release --bin display_test`. Fills, orientation marker, then
-the readout cycling with a fake heatmap. Measured at 5 MHz on the real SPI
-(display not yet connected):
+Three programs, simplest first:
+
+| Program | What it does |
+|---|---|
+| `display_hello` | One static screen at 2.5 MHz: HELLO, red / green / blue squares. Nothing changes after, so any flicker is power, not SPI. |
+| `display_pins` | Each signal (SCK, SDI, CS, DC, RESET) high on its own for 5 s in turn. Measure at the **display's** pins with a multimeter: proves every wire end to end. |
+| `display_test` | Fills, orientation marker, then the readout cycling with a fake heatmap; every draw timed. |
+
+`display_test` timings at 5 MHz, the same with the panel connected:
 
 | Draw | Time |
 |---|---|
@@ -123,3 +150,19 @@ the readout cycling with a fake heatmap. Measured at 5 MHz on the real SPI
 | Heatmap per frame (changed cells only) | 0.3–5 ms |
 
 The frame budget is 200 ms at 5 Hz.
+
+In the live program (`fused_stream`), with sensors and model: a state
+change costs 212–220 ms, so that one frame overruns; every other frame
+draws in under 50 ms (draws over 50 ms are logged as `display frame N`).
+
+## Troubleshooting (all seen on 2026-11-28)
+
+| Screen | Cause | Fix |
+|---|---|---|
+| Plain white, steady | Powered, never initialised: no data arriving, or the display was powered after the program started | Restart the program (it initialises once, at start). Then check SCK D13, SDI D11, CS D10, DC D8, RESET D9, label to label |
+| Grey, flickering dark / grey / bright | **VCC open**, LED powered: the controller half-powers through the signal pins | Connect VCC to 5V. Check the plug is not one pin off at the module |
+| Was working, now white after handling | Twisted or loose Dupont ends: a twisted crimp stops gripping the pin | Replace the leads; don't rotate Dupont ends on the pins |
+| USB drops (`device disconnected`) | Unplugged, or a loose bare end shorting 5V | Look for bare ends near 5V / GND before re-plugging |
+
+The board cannot tell any of these apart: the driver is write-only and the
+log says "drawn" either way. Look at the screen, then use `display_pins`.
